@@ -110,7 +110,7 @@ const pct = (a, q) => { if (!a.length) return null; const s = [...a].sort((x, y)
 export function summarise(results) {
   const methods = {
     geos: 'GEOS (fusion + forecast)',
-    buller: 'HR-only Kalman (same 38.3 C trigger)',
+    buller: 'HR-only Kalman (same 38.2 C trigger)',
     hr: 'HR >= 85% max for 5 min',
     staticWbgt: 'Static WBGT >= 28 C',
   };
@@ -169,3 +169,4 @@ export function runClosedLoopComparison({ n = 120, seedStart = 1000, monitorOpts
   }
   return { open, closed };
 }
+

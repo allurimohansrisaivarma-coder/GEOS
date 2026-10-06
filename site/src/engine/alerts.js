@@ -18,7 +18,7 @@ export const DEFAULT_POLICY = {
   nDown: 12,           // consecutive lower samples before stepping down one level
   heat: {
     danger: { tc: 38.9, ttt39: 10, psi: 8.5 },
-    warning: { tc: 38.3, ttt385: 20, psi: 6.5 },
+    warning: { tc: 38.2, ttt385: 20, psi: 6.5 },
     watch: { tc: 37.8, ttt385: 45 },
   },
   uncertainSd: 0.35,   // above this the filter is "unsure": use the earliest plausible crossing time
@@ -178,3 +178,4 @@ function actionsFor(hazard, level, planText) {
   if (level === 2) return ['Stop work: move to shade or a cool area', 'Rest at least 15 min; drink 250 ml water', planText, 'Buddy check for dizziness, nausea, confusion'];
   return ['Drink 250 ml every 15-20 min', planText, 'Take shade breaks early'];
 }
+

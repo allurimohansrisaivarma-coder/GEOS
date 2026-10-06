@@ -30,7 +30,7 @@ function printSummary(s) {
 // Candidate = estimator params + the alert thresholds we tune alongside them.
 function toOpts(c) {
   return {
-    estimator: { tau: c.tau, tcAtLimit: c.tcAtLimit, eqCap: c.eqCap, gUp: c.gUp, gLo: c.gLo, qTc: c.qTc, rSigma: c.rSigma, actK: c.actK, acclHrBoost: c.acclHrBoost },
+    estimator: { tau: c.tau, tcAtLimit: c.tcAtLimit, eqCap: c.eqCap, gUp: c.gUp, gLo: c.gLo, qTc: c.qTc, rSigma: c.rSigma, actK: c.actK, acclHrBoost: c.acclHrBoost, rhrK: c.rhrK, rhrRef: c.rhrRef, tauBias: c.tauBias, qBias: c.qBias },
     policy: {
       nUp: [0, 3, c.nUp2, 2],
       heat: {
@@ -54,7 +54,7 @@ function score(c, seeds) {
 }
 
 if (flag('tune')) {
-  const seeds = Array.from({ length: val('cal', 150) }, (_, i) => 1 + i);
+  const seeds = Array.from({ length: val('cal', 300) }, (_, i) => 1 + i);
   let best = { ...DEFAULT_PARAMS, warnTc: DEFAULT_POLICY.heat.warning.tc, warnTtt: DEFAULT_POLICY.heat.warning.ttt385, nUp2: DEFAULT_POLICY.nUp[2] };
   const grid = {
     tau: [30, 45, 60, 90],
@@ -66,13 +66,17 @@ if (flag('tune')) {
     rSigma: [14, 18.88, 24],
     actK: [0.04, 0.08, 0.12],
     acclHrBoost: [0, 6, 12],
+    rhrK: [0.6, 0.8, 1.0, 1.2],
+    rhrRef: [65, 69, 73],
+    tauBias: [60, 120, 240],
+    qBias: [0.0004, 0.0007, 0.0012],
     warnTc: [38.2, 38.3, 38.4],
     warnTtt: [12, 20, 30],
     nUp2: [2, 3, 5],
   };
   let cur = score(best, seeds);
   console.log('start loss', cur.loss.toFixed(3));
-  for (let pass = 0; pass < 2; pass++) {
+  for (let pass = 0; pass < 3; pass++) {
     for (const [k, options] of Object.entries(grid)) {
       for (const v of options) {
         if (best[k] === v) continue;
@@ -101,7 +105,7 @@ if (flag('tune')) {
     console.log('Closed loop (same shifts): advice followed ->', f(cl.closed));
   }
   const payload = {
-    generated: new Date().toISOString(), n, seeds: `${1000}..${999 + n}`, calibrationSeeds: '1..150',
+    generated: new Date().toISOString(), n, seeds: `${1000}..${999 + n}`, calibrationSeeds: '1..300',
     params: DEFAULT_PARAMS, policy: DEFAULT_POLICY, summary, closedLoop: closed,
     closedLoopN: Math.min(n, 150),
   };
@@ -110,3 +114,4 @@ if (flag('tune')) {
   writeFileSync(new URL('../site/data/benchmark.json', import.meta.url), JSON.stringify(payload));
   console.log('\nwrote bench/results.json and site/data/benchmark.json');
 }
+

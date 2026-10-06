@@ -188,7 +188,7 @@ export function renderDetail(S, fr) {
   else { wv = 'OK'; wa = 'All clear'; }
   $('#d-watch').innerHTML = `<div class="watch lv${lv}${lv >= 2 ? ' pulse' : ''}" role="img" aria-label="Wearable alert preview: ${LEVEL_LABEL[lv]}">
       <div class="wt">${clk}</div><div class="wl">${ICON[LEVEL_ICON[lv]]}${LEVEL_LABEL[lv]}</div>
-      <div class="wv">${esc(wv)}</div><div class="wa">${esc(wa.length > 62 ? wa.slice(0, 60) + '...' : wa)}</div></div>`;
+      <div class="wv">${esc(wv)}</div><div class="wa">${esc(wa)}</div></div>`;
 
   // the lead-time comparison is scored against the true core temperature, so it only applies to heat strain
   const lower = $('#d-lower');
@@ -256,6 +256,10 @@ function raceSvg(S, id) {
   for (let m = 0; m <= dur; m += 60) {
     o += `<line x1="${X(m)}" x2="${X(m)}" y1="${top - 6}" y2="${top + rows.length * rowH - 4}" stroke="var(--grid)"/><text class="ax" x="${X(m)}" y="${H - 5}" text-anchor="middle">${clock(S.scn.startLocalH, m)}</text>`;
   }
+  if (tTrue != null) {
+    const x = X(tTrue);
+    o += `<line x1="${x}" x2="${x}" y1="${top - 8}" y2="${top + rows.length * rowH - 4}" stroke="var(--crit)" stroke-width="2"/><text class="lbl" x="${x}" y="${top - 11}" text-anchor="${x > x1 - 110 ? 'end' : 'middle'}" style="fill:var(--ink)">true 38.5 °C crossing</text>`;
+  }
   const crewN = Object.keys(fs[idx].workers).length;
   rows.forEach(([k, label, color], i) => {
     const y = top + i * rowH + rowH / 2 - 4;
@@ -275,10 +279,6 @@ function raceSvg(S, id) {
       o += `<text class="ax" x="${x0 + 6}" y="${y + 4}">no alarm yet</text>`;
     }
   });
-  if (tTrue != null) {
-    const x = X(tTrue);
-    o += `<line x1="${x}" x2="${x}" y1="${top - 8}" y2="${top + rows.length * rowH - 4}" stroke="var(--crit)" stroke-width="2"/><text class="lbl" x="${x}" y="${top - 11}" text-anchor="${x > x1 - 110 ? 'end' : 'middle'}" style="fill:var(--ink)">true 38.5 °C crossing</text>`;
-  }
   return sum + o + '</svg>';
 }
 

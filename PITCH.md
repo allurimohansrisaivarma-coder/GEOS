@@ -19,7 +19,7 @@ Each slide has full speaker notes. Download a PPTX/PDF backup before the event.
 
 **0:40 (switch to the live app, press Play)** "Five workers, one hot afternoon, real heat physics. Watch the bell: within ten minutes the count starts climbing as GEOS warns Arjun and Kiran, and every warning is listed with its reason and what to do. Click Arjun: it forecasts his core temperature reaching 38.5 in about 15 minutes. The grey line, if I switch on Ground truth, is the simulator's hidden true temperature, which the engine never sees. Down here, Warning lead time: GEOS warned 28 minutes before his true temperature crossed 38.5, and it alarmed 2 of 5 workers. The static alarm alarmed all 5. Now Follow advice, in the Simulation panel: the same shift, but workers take a shade break when warned; his peak stays at 38."
 
-**1:40 (slide 7)** "We tested on 600 randomised shifts, tuned on separate seeds, scored against a hidden core temperature. GEOS warned ahead of 77 percent of unsafe episodes, median head start 26 minutes, with 13 percent false alarms. A static alarm has 78 percent false alarms. Following the advice cut unsafe cases by 66 percent. This is a synthetic benchmark, not clinical validation, and I say so openly."
+**1:40 (slide 7)** "We tested on 600 randomised shifts, tuned on separate seeds, scored against a hidden core temperature. GEOS warned ahead of 86 percent of unsafe episodes, median head start 27 minutes, with 8 percent false alarms. A static alarm has 78 percent false alarms. Following the advice cut unsafe cases by 71 percent. This is a synthetic benchmark, not clinical validation, and I say so openly."
 
 **2:15** "It also tracks each person's own gas dose, so the worker at a leak is warned while the fixed monitor still says all clear, and the whole engine is dependency-free JavaScript that works offline, because remote sites have no network."
 
@@ -41,13 +41,13 @@ Each slide has full speaker notes. Download a PPTX/PDF backup before the event.
 
 ## Numbers cheat sheet (all reproducible with `npm run bench`)
 
-* 600 held-out shifts; calibrated on seeds 1-150, evaluated on 1000-1599. 135 unsafe, 205 near-miss, 260 clearly safe.
-* GEOS: warned before unsafe 77%, 65% at least 10 min early, median 26 min, false alarms 13% (35 of 260).
+* 600 held-out shifts; calibrated on seeds 1-300, evaluated on 1000-1599. 135 unsafe, 205 near-miss, 260 clearly safe.
+* GEOS: warned before unsafe 86%, 73% at least 10 min early, median 27 min, false alarms 8% (20 of 260).
 * Static WBGT ≥ 28 °C alarm: 86% / 81% / 56 min / **78%** (202 of 260).
-* HR-only Kalman: 30% / 24% / 61 min / 3%.  HR ≥ 85% of max: 19% / 13% / 24 min / 0%.
-* Core-temperature RMSE: fusion 0.40 °C, HR-only 0.46 °C, environment-only 0.73 °C.
-* Closed loop, 150 shifts: ≥ 38.5 °C 35 → 12; ≥ 39.0 °C 10 → 3; minutes above 38.5 °C 36.7 → 8.8.
-* Thar demo (seed 1): Arjun warned 10:08, true crossing 10:36 (28 min); Kiran warned 10:08, crossing 10:58 (50 min). Following advice: peaks 38.00 and 38.01 °C instead of 39.08 and 38.91.
+* HR-only Kalman: 36% / 31% / 65 min / 6%.  HR ≥ 85% of max: 19% / 13% / 24 min / 0%.
+* Core-temperature RMSE: fusion 0.31 °C, HR-only 0.46 °C, environment-only 0.73 °C.
+* Closed loop, 150 shifts: ≥ 38.5 °C 35 → 10; ≥ 39.0 °C 10 → 2; minutes above 38.5 °C 36.7 → 4.8.
+* Thar demo (seed 1): Arjun warned 10:08, true crossing 10:36 (28 min); Kiran warned 10:06, crossing 10:58 (52 min). Following advice: peaks 38.00 and 38.10 °C instead of 39.08 and 38.91.
 * Offshore demo: area monitor peaks 7.8 ppm; Deepak at the source 64.6 ppm, DANGER within 2 minutes.
 * ILO (2024): 2.41 billion workers exposed to excessive heat, 22.85 million injuries, 18,970 deaths a year; 9 in 10 exposures happen outside heatwaves.
 * Engine: 11 files, about 1,040 lines, no dependencies; 30 tests; a six-hour, five-worker shift runs in about 70 ms.
@@ -58,7 +58,7 @@ Each slide has full speaker notes. Download a PPTX/PDF backup before the event.
 
 **How do you validate without real data?** Honestly, we can't yet: the benchmark is synthetic. I separated calibration seeds from evaluation seeds, used a different body model for the truth than for the estimator so it faces model mismatch, and injected sensor faults. The next step is a field pilot with logged core temperature.
 
-**How accurate is the core-temperature estimate?** In our synthetic benchmark the RMSE is 0.40 °C. The underlying heart-rate model (Buller et al.) is what the US Army's ECTemp algorithm uses; it reported a bias of -0.03 ± 0.32 °C over 52,000 observations from 83 volunteers. Ours adds an environment prior and a personal drift term.
+**How accurate is the core-temperature estimate?** In our synthetic benchmark the RMSE is 0.31 °C. The underlying heart-rate model (Buller et al.) is what the US Army's ECTemp algorithm uses; it reported a bias of -0.03 ± 0.32 °C over 52,000 observations from 83 volunteers. Ours adds an environment prior, a personal drift term and each worker's resting heart rate.
 
 **Is the heart rate live?** The pipeline takes one reading per worker per minute (wearables average over the minute and send once, which saves battery and airtime on a LoRa or satellite link), so "live" means this minute's reading. The card shows the latest accepted reading, a half-hour trace, and exactly how long ago it arrived; if the strap goes quiet it turns red with "Last update N min ago" instead of showing a frozen number as if it were current.
 
@@ -66,7 +66,7 @@ Each slide has full speaker notes. Download a PPTX/PDF backup before the event.
 
 **Why does a static WBGT alarm do so badly?** It is one number for everyone. NIOSH's own limit depends on workload and acclimatisation (23 °C for heavy work unacclimatised, 31 °C for light work acclimatised). Using one threshold means it either rings for all or is set so high it is late.
 
-**What about alert fatigue?** That is the design goal: WATCH is an advisory, WARNING needs three consecutive risky samples, de-escalation is sticky, and we measure false alarms on clearly safe workers (13%).
+**What about alert fatigue?** That is the design goal: WATCH is an advisory, WARNING needs three consecutive risky samples, de-escalation is sticky, and we measure false alarms on clearly safe workers (8%).
 
 **Privacy of health data?** Processing is on the device; only alerts need to leave it; no cloud is required. In a deployment you would minimise what the supervisor sees (alert level and location, not raw vitals) and get worker consent.
 
@@ -83,7 +83,7 @@ Each slide has full speaker notes. Download a PPTX/PDF backup before the event.
 ## What not to claim
 
 * Do not say "clinically validated" or "predicts heat stroke". Say "forecasts core-temperature risk; validated on a synthetic benchmark".
-* Do not quote the 0.40 °C RMSE as real-world accuracy.
+* Do not quote the 0.31 °C RMSE as real-world accuracy.
 * Do not call it AI or machine learning in general terms; it is model-based state estimation, change-point detection and rule-based alerting, and that is a strength (explainable).
 * Do not say it replaces medical judgment. It is decision support.
 

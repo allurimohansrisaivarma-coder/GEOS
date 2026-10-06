@@ -29,16 +29,19 @@ export const dHrdTc = (tc) => HR_OBS.b1 + 2 * HR_OBS.b2 * tc;
 // frozen; all reported results use different, held-out seeds. rSigma is Buller's published value.
 export const DEFAULT_PARAMS = {
   tau: 45,        // min  - how fast core temperature relaxes toward its equilibrium
-  tauBias: 120,   // min  - decay of the learned per-worker drift
+  tauBias: 240,   // min  - decay of the learned per-worker drift
   tcAtLimit: 37.7, // C - typical core temperature when WBGT sits exactly at the NIOSH limit
   eqCap: 3.0,     // C - ceiling on how far above tcAtLimit the equilibrium can rise
   gUp: 0.30,      // C of equilibrium core temp per C of WBGT above the limit (small excess)
-  gLo: 0.10,      // C per C below the limit (gentler)
-  qTc: 0.025,     // process noise, C per sqrt(min)
-  qBias: 0.0007,  // process noise on drift, (C/min) per sqrt(min)
-  rSigma: 18.88,  // bpm - HR measurement noise (Buller et al. 2013)
+  gLo: 0.06,      // C per C below the limit (gentler)
+  qTc: 0.04,      // process noise, C per sqrt(min)
+  qBias: 0.0012,  // process noise on drift, (C/min) per sqrt(min)
+  rSigma: 14,     // bpm - HR noise (Buller's published 18.88 is for HR-only; tuned lower once resting HR is modelled)
   actK: 0.04,     // bpm per watt of workload relative to the moderate-work reference
   acclHrBoost: 0, // bpm added back for acclimatised workers (acclimatisation lowers HR at equal core temp)
+  restHr: null,   // bpm - the worker's resting heart rate (set per worker by the pipeline)
+  rhrK: 0.8,      // fraction of the resting-HR difference passed into the HR observation
+  rhrRef: 69,     // bpm - resting HR the population observation model corresponds to
   tc0: 37.1,
   p0Tc: 0.15,
   p0Bias: 0.004,
@@ -89,7 +92,11 @@ export class CoreTempEstimator {
 
   /** Heart-rate offset (bpm) to remove before inverting the HR->Tc map: workload relative to the
    *  moderate-work reference, minus the acclimatisation effect. */
-  hrActivityOffset(M) { return this.p.actK * (M - 300) - (this.acclimatized ? this.p.acclHrBoost : 0); }
+  hrActivityOffset(M) {
+    // A worker's own resting heart rate moves the whole HR curve; Buller's map is for an average person.
+    const rest = this.p.restHr == null ? 0 : this.p.rhrK * (this.p.restHr - this.p.rhrRef);
+    return this.p.actK * (M - 300) + rest - (this.acclimatized ? this.p.acclHrBoost : 0);
+  }
 
   /**
    * One filter step.
@@ -185,3 +192,4 @@ export class BullerKalman {
     return { tc: this.tc, sd: Math.sqrt(this.P) };
   }
 }
+

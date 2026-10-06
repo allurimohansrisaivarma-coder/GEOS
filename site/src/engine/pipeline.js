@@ -86,7 +86,7 @@ export class WorkerMonitor {
   constructor(profile, opts = {}) {
     this.profile = profile;
     this.hrQc = new HrChannelQC();
-    const ep = { acclimatized: profile.acclimatized, ...(opts.estimator || {}) };
+    const ep = { acclimatized: profile.acclimatized, restHr: profile.restHr, ...(opts.estimator || {}) };
     this.est = new CoreTempEstimator(ep);
     this.prior = new CoreTempEstimator(ep); // environment-only shadow (never sees heart rate)
     this.buller = new BullerKalman();
@@ -158,7 +158,7 @@ export class WorkerMonitor {
     const base = {
       staticWbgt: zoneWbgt >= 28,
       hr: this.hrRun >= 5,
-      buller: B.tc >= 38.3, // HR-only Kalman with the same trigger temperature as GEOS's WARNING
+      buller: B.tc >= 38.2, // HR-only Kalman with the same trigger temperature as GEOS's WARNING
     };
     if (a.level >= 2 && a.hazard === 'heat' && this.first.geos == null) this.first.geos = t;
     for (const k of ['staticWbgt', 'hr', 'buller']) if (base[k] && this.first[k] == null) this.first[k] = t;
@@ -192,3 +192,4 @@ export class Monitor {
     return { t: sample.t, utcMs: sample.utcMs, site, workers };
   }
 }
+

@@ -2,7 +2,7 @@
 // Strategy: network-first with cache fallback for our own files (always fresh when online, still works offline);
 // third-party weather requests are never cached here - the app falls back to its own bundled snapshot.
 
-const CACHE = 'geos-v3';
+const CACHE = 'geos-v4';
 const CORE = [
   './', 'index.html', 'styles.css', 'flow.css', 'manifest.webmanifest', 'icon.svg',
   'src/main.js', 'src/plants.js', 'src/ui/dom.js', 'src/ui/icons.js', 'src/ui/charts.js', 'src/ui/views.js', 'src/ui/simpanel.js', 'src/ui/notifications.js', 'src/ui/sensors.js', 'src/engine/cold.js',

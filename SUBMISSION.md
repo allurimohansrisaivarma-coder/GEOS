@@ -27,13 +27,13 @@ GEOS is an early-warning system for environmental stress in deserts, offshore pl
 
 The key idea: environment is not exposure. The same weather endangers a new hire in a double-layer suit but not an acclimatised supervisor, so one static threshold either rings for everyone or warns too late.
 
-On 600 held-out synthetic shifts, GEOS warned ahead of 77% of unsafe episodes (median 26 min head start) with 13% false alarms, versus 78% false alarms for a static WBGT alarm; following its advice cut unsafe cases by 66%. Dependency-free JavaScript, installable offline web app, live dashboard with real Open-Meteo weather. The benchmark is synthetic, not clinical validation.
+On 600 held-out synthetic shifts, GEOS warned ahead of 86% of unsafe episodes (median 27 min head start) with 8% false alarms, versus 78% false alarms for a static WBGT alarm; following its advice cut unsafe cases by 71%. Dependency-free JavaScript, installable offline web app, live dashboard with real Open-Meteo weather. The benchmark is synthetic, not clinical validation.
 ```
 
 **Short version (about 90 words), if the form limits length:**
 
 ```
-GEOS is a predictive early-warning system for heat, toxic gas and dust in remote work. It monitors weather, wearable heart-rate and gas sensors; detects heat load (Liljegren WBGT) and sudden events (CUSUM); assesses each person's exposure by fusing an environment-driven heat-strain model with heart rate in a Kalman filter; and warns on a forecast time-to-threshold, with reasons and actions. Insight: environment is not exposure. On 600 held-out synthetic shifts it warned ahead of 77% of unsafe episodes (median 26 min) with 13% false alarms vs 78% for a static alarm. Works offline.
+GEOS is a predictive early-warning system for heat, toxic gas and dust in remote work. It monitors weather, wearable heart-rate and gas sensors; detects heat load (Liljegren WBGT) and sudden events (CUSUM); assesses each person's exposure by fusing an environment-driven heat-strain model with heart rate in a Kalman filter; and warns on a forecast time-to-threshold, with reasons and actions. Insight: environment is not exposure. On 600 held-out synthetic shifts it warned ahead of 86% of unsafe episodes (median 27 min) with 8% false alarms vs 78% for a static alarm. Works offline.
 ```
 
 ## Before you press submit
