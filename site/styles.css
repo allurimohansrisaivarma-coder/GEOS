@@ -706,3 +706,5 @@ body[data-focus="temps"] .bench { grid-template-columns: 340px; justify-content:
 body[data-focus="forecast"] .strip, body[data-focus="forecast"] .crew, body[data-focus="forecast"] #detail, body[data-focus="forecast"] .site { display: none !important; }
 body[data-focus="forecast"] .bench { grid-template-columns: 340px; justify-content: start; }
 .ct-u { font: 500 10px var(--font); fill: var(--muted); }
+.srow { list-style: none; }
+.srow::marker { content: none; }
