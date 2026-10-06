@@ -1,0 +1,8 @@
+# One line-ending style in the repository, whatever the operating system
+* text=auto eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.ico binary

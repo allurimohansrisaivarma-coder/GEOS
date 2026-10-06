@@ -31,7 +31,7 @@ export function collectNotifications(S) {
       out.push({ key: `${S.mode}|${l.t}|site|${l.text.slice(0, 20)}`, kind: 'site', t: l.t, level: l.severity >= 2 ? 2 : 1, id: null, title: s.title, why: s.why, act: '' });
     }
   }
-  for (const n of S.sys) if (n.t <= S.idx) out.push({ key: n.key, kind: 'sys', t: n.t, level: 0, id: null, title: n.title, why: n.why, act: '', silent: true });
+  for (const n of S.sys) if (n.t <= S.idx) out.push({ key: n.key, kind: 'sys', t: n.t, level: 0, id: null, title: n.title, why: n.why, act: n.ticket ? 'Open ticket' : '', ticket: n.ticket || '', silent: true });
   out.sort((a, b) => b.t - a.t || b.level - a.level);
   return out;
 }
@@ -83,7 +83,7 @@ export function renderNotifications(S, list) {
 function item(S, n, unread, fresh) {
   const icon = n.kind === 'sys' ? ICON.info : ICON[LEVEL_ICON[n.level]];
   const who = n.kind === 'worker' ? nameOf(S, n.id) : n.kind === 'site' ? 'Site' : 'System';
-  return `<li><button type="button" class="nitem lv${n.level}${unread ? ' unread' : ''}${fresh ? ' fresh' : ''}${n.kind === 'sys' ? ' sys' : ''}" data-key="${esc(n.key)}" data-t="${n.t}" data-id="${esc(n.id || '')}">
+  return `<li><button type="button" class="nitem lv${n.level}${unread ? ' unread' : ''}${fresh ? ' fresh' : ''}${n.kind === 'sys' ? ' sys' : ''}" data-key="${esc(n.key)}" data-t="${n.t}" data-id="${esc(n.id || '')}" data-ticket="${esc(n.ticket || '')}">
     <span class="n-ico">${icon}</span>
     <span class="n-main">
       <span class="n-top"><span class="n-who">${esc(who)}</span><time class="n-time">${clock(S.scn.startLocalH, n.t)}</time></span>
@@ -95,7 +95,7 @@ function item(S, n, unread, fresh) {
 }
 
 /** Wires the bell, the drawer and its controls. `api.list()` must return the current notifications. */
-export function initNotifications({ S, list, onJump, onToggle, redraw }) {
+export function initNotifications({ S, list, onJump, onToggle, onTicket, redraw }) {
   const drawer = $('#notif'), bell = $('#btn-bell');
   const isOpen = () => document.body.dataset.drawer === 'open';
 
@@ -133,7 +133,8 @@ export function initNotifications({ S, list, onJump, onToggle, redraw }) {
     const b = e.target.closest('.nitem');
     if (!b) return;
     S.read.add(b.dataset.key);
-    if (!b.classList.contains('sys')) onJump(Number(b.dataset.t), b.dataset.id || null);
+    if (b.dataset.ticket) { close(false); onTicket?.(b.dataset.ticket); redraw(); }
+    else if (!b.classList.contains('sys')) onJump(Number(b.dataset.t), b.dataset.id || null);
     else redraw();
   };
   return { open, close, isOpen, toggle: () => (isOpen() ? close() : open()) };

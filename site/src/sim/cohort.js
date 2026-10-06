@@ -47,7 +47,6 @@ export function randomCase(seed) {
     if ((i - rampUp) % breakEvery >= breakEvery - breakLen) return { activity: 'rest', zone: 'shade' };
     return { activity: base, zone: 'sun' };
   };
-  const startLocal = { y: 2026, mo: S.mo, d: S.d, h: startH, mi: 0 };
   return {
     id: `rand-${seed}`,
     title: `Random case ${seed}`,

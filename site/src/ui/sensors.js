@@ -202,10 +202,13 @@ function saveTickets(S) { store.set(keyOf(S), JSON.stringify({ tickets: S.ticket
 
 // ------------------------------------------------------------------ wiring
 export function initTickets(S, { clockText, onChange }) {
-  const goto = (tab) => {
+  const goto = (tab, ticketId = null) => {
     $('#pane-sensors').hidden = tab !== 'sensors'; $('#pane-tickets').hidden = tab !== 'tickets';
     $('#tab-sensors').setAttribute('aria-selected', String(tab === 'sensors')); $('#tab-tickets').setAttribute('aria-selected', String(tab === 'tickets'));
-    if (tab === 'tickets') { renderTickets(S); $('#tk-msg').textContent = ''; }
+    if (tab === 'tickets') {
+      S.tkFilter = 'all'; renderTickets(S); $('#tk-msg').textContent = '';
+      if (ticketId) $(`#tk-list [data-tk="${ticketId}"]`)?.scrollIntoView({ block: 'nearest' });
+    }
   };
   const refresh = () => { saveTickets(S); renderTickets(S); renderSensors(S, S._fr); };
   const find = (id) => sensorList(S, S._fr).find((x) => x.id === id);
@@ -223,7 +226,7 @@ export function initTickets(S, { clockText, onChange }) {
       goto('tickets'); $('#tk-note').focus(); return;
     }
     const view = e.target.closest('[data-viewtk]');
-    if (view) { S.tkFilter = 'all'; goto('tickets'); $(`#tk-list [data-tk="${view.dataset.viewtk}"]`)?.scrollIntoView({ block: 'nearest' }); return; }
+    if (view) { goto('tickets', view.dataset.viewtk); return; }
     const head = e.target.closest('.s-head');
     if (head) { const id = head.parentElement.dataset.sid; if (S.sensorOpen.has(id)) S.sensorOpen.delete(id); else S.sensorOpen.add(id); renderSensors(S, S._fr); }
   };
@@ -240,7 +243,7 @@ export function initTickets(S, { clockText, onChange }) {
     $('#tk-note').value = '';
     S.tkFilter = 'all';
     msg(`${k.id} raised.`);
-    onChange(`Ticket ${k.id} raised`, `${s.name}: ${issue}`);
+    onChange(`Ticket ${k.id} raised`, `${s.name}: ${issue}`, k.id);
     refresh();
   };
 
@@ -252,8 +255,8 @@ export function initTickets(S, { clockText, onChange }) {
     if (b.dataset.done) {
       k.status = 'Resolved'; k.doneAt = clockText();
       if (REPLACE_ON.test(k.issue)) S.replaced[k.sensor] = S.idx;
-      onChange(`Ticket ${k.id} resolved`, REPLACE_ON.test(k.issue) ? `${k.name}: device swapped, battery 100%` : `${k.name}: ${k.issue}`);
-    } else { k.status = 'In progress'; onChange(`Ticket ${k.id} in progress`, k.name); }
+      onChange(`Ticket ${k.id} resolved`, REPLACE_ON.test(k.issue) ? `${k.name}: device swapped, battery 100%` : `${k.name}: ${k.issue}`, k.id);
+    } else { k.status = 'In progress'; onChange(`Ticket ${k.id} in progress`, k.name, k.id); }
     refresh();
   };
   return { goto };

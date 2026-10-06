@@ -6,7 +6,7 @@
   --bg: #e9e7e0; --surface: #fbfaf7; --surface-2: #f2f0ea; --surface-3: #e5e2d9; --raised: #ffffff;
   --ink: #14181f; --ink-2: #444b58; --muted: #697080;
   --line: #d8d5cb; --line-strong: #bebaad; --grid: #e4e1d8; --axis: #bebaad;
-  --accent: #2250b4; --accent-soft: #e0e7f6; --accent-ink: #ffffff;
+  --accent: #2250b4; --accent-soft: #e0e7f6;
   --s1: var(--accent); --s2: #3d4452;
   --good: #2e8b57;    --good-ink: #1d6b41;    --good-tint: #e0f0e6;
   --warn: #d9a21b;    --warn-ink: #7a5200;    --warn-tint: #f8ecc8;
@@ -25,7 +25,7 @@
     --bg: #0f1114; --surface: #17191d; --surface-2: #1e2126; --surface-3: #282c32; --raised: #1d2025;
     --ink: #ecebe6; --ink-2: #b9bdc7; --muted: #8b919d;
     --line: #2a2e35; --line-strong: #3b404a; --grid: #23272d; --axis: #3b404a;
-    --accent: #8aa9ff; --accent-soft: #1f2b49; --accent-ink: #0b1220;
+    --accent: #8aa9ff; --accent-soft: #1f2b49;
     --s2: #c7cbd4;
     --good: #4dbb82;    --good-ink: #86dcae;    --good-tint: #15291f;
     --warn: #e5b43a;    --warn-ink: #f1cf78;    --warn-tint: #2d2610;
@@ -41,7 +41,7 @@
   --bg: #0f1114; --surface: #17191d; --surface-2: #1e2126; --surface-3: #282c32; --raised: #1d2025;
   --ink: #ecebe6; --ink-2: #b9bdc7; --muted: #8b919d;
   --line: #2a2e35; --line-strong: #3b404a; --grid: #23272d; --axis: #3b404a;
-  --accent: #8aa9ff; --accent-soft: #1f2b49; --accent-ink: #0b1220;
+  --accent: #8aa9ff; --accent-soft: #1f2b49;
   --s2: #c7cbd4;
   --good: #4dbb82;    --good-ink: #86dcae;    --good-tint: #15291f;
   --warn: #e5b43a;    --warn-ink: #f1cf78;    --warn-tint: #2d2610;
@@ -70,7 +70,6 @@ select, input { font: inherit; color: inherit; }
 .skip:focus { left: 8px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .muted { color: var(--muted); }
-.ink2 { color: var(--ink-2); }
 .small { font-size: 12px; }
 .tnum { font-variant-numeric: tabular-nums; }
 .grow { flex: 1; }
@@ -193,11 +192,10 @@ input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; border-radius
 .stage.click .s-sub::after { content: "  ·  View sensors"; color: var(--accent); font-weight: 550; }
 .stage.click:focus-visible { outline-offset: -3px; }
 .head-sum { margin-left: 8px; font-size: 13px; font-weight: 500; color: var(--muted); }
-#dlg-sensors { width: min(560px, calc(100vw - 24px)); }
 #dlg-sensors .eyebrow { margin: 18px 0 6px; }
 #dlg-sensors .eyebrow:first-child { margin-top: 0; }
 .srows { list-style: none; padding: 0 !important; display: flex; flex-direction: column; max-width: none !important; gap: 0 !important; }
-.srow { border-bottom: 1px solid var(--line); }
+.srow { list-style: none; border-bottom: 1px solid var(--line); }
 .srow:last-child { border-bottom: 0; }
 .srow .s-head { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto auto auto; gap: 12px; align-items: center; width: 100%; padding: 10px 4px; text-align: left; border-radius: 10px; transition: background-color .15s; }
 .srow .s-head:hover { background: var(--surface-2); }
@@ -706,5 +704,4 @@ body[data-focus="temps"] .bench { grid-template-columns: 340px; justify-content:
 body[data-focus="forecast"] .strip, body[data-focus="forecast"] .crew, body[data-focus="forecast"] #detail, body[data-focus="forecast"] .site { display: none !important; }
 body[data-focus="forecast"] .bench { grid-template-columns: 340px; justify-content: start; }
 .ct-u { font: 500 10px var(--font); fill: var(--muted); }
-.srow { list-style: none; }
-.srow::marker { content: none; }
+body[data-focus]:not([data-focus="temps"]) .crew-temps, body[data-focus]:not([data-focus="forecast"]) .forecast { display: none; }

@@ -6,13 +6,6 @@
 //   * Sticky     - de-escalate one level at a time, and only after the risk has stayed lower.
 //   * Explainable - every alert carries its reasons and a concrete action.
 
-export const LEVELS = [
-  { id: 0, key: 'safe', label: 'SAFE' },
-  { id: 1, key: 'watch', label: 'WATCH' },
-  { id: 2, key: 'warning', label: 'WARNING' },
-  { id: 3, key: 'danger', label: 'DANGER' },
-];
-
 export const DEFAULT_POLICY = {
   nUp: [0, 3, 3, 2],   // consecutive samples required to escalate TO level n
   nDown: 12,           // consecutive lower samples before stepping down one level

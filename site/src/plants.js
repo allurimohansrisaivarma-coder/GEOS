@@ -13,13 +13,3 @@ export const PLANTS = [
 export const plantById = (id) => PLANTS.find((p) => p.id === id) || PLANTS[0];
 export const hasShift = (p) => !!p.scenario;
 export const hasLive = (p) => !!p.live;
-
-/** Old deep links used ?scenario=thar|offshore|live; map them onto plants. */
-export function legacyScenario(id) {
-  if (id === 'thar') return { plant: 'jaisalmer', src: 'sim' };
-  if (id === 'offshore') return { plant: 'platformb', src: 'sim' };
-  if (id === 'mine') return { plant: 'witbank', src: 'sim' };
-  if (id === 'arctic') return { plant: 'norilsk', src: 'sim' };
-  if (id === 'live') return { plant: 'jaisalmer', src: 'live' };
-  return null;
-}

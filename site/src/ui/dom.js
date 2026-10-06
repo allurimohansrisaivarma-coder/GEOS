@@ -36,8 +36,3 @@ export function safeStorage() {
     set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage may be blocked */ } },
   };
 }
-
-export function debounce(fn, ms) {
-  let t;
-  return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-}

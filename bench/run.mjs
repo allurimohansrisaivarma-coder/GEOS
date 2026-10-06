@@ -93,7 +93,7 @@ if (flag('tune')) {
 } else {
   const n = val('n', 600);
   const t0 = performance.now();
-  const { results, summary } = runBenchmark({ n, seedStart: 1000 });
+  const { summary } = runBenchmark({ n, seedStart: 1000 });
   console.log(`held-out evaluation (seeds 1000..${999 + n}) in ${((performance.now() - t0) / 1000).toFixed(1)} s\n`);
   printSummary(summary);
   let closed = null;

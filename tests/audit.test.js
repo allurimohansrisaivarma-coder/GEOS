@@ -7,6 +7,32 @@ import { heatCategory, wbgtLimit } from '../site/src/engine/limits.js';
 import { buildScenario, runScenarioSync } from '../site/src/sim/scenarios.js';
 import { Monitor } from '../site/src/engine/pipeline.js';
 import { simOutlook } from '../site/src/outlook.js';
+import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs';
+import { join, relative } from 'node:path';
+
+const SITE = new URL('../site/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
+const listFiles = (d) => readdirSync(d).flatMap((f) => (statSync(join(d, f)).isDirectory() ? listFiles(join(d, f)) : [join(d, f)]));
+
+test('offline cache lists exactly the files the app needs', () => {
+  const sw = readFileSync(join(SITE, 'sw.js'), 'utf8');
+  const core = [...sw.slice(sw.indexOf('const CORE'), sw.indexOf('];')).matchAll(/'([^']+)'/g)].map((m) => m[1]).filter((p) => p !== './');
+  for (const p of core) assert.ok(existsSync(join(SITE, p)), `sw.js lists ${p} but it does not exist`);
+  const onDisk = listFiles(SITE).map((p) => relative(SITE, p).replace(/\\/g, '/')).filter((p) => p !== 'sw.js');
+  for (const p of onDisk) assert.ok(core.includes(p), `${p} is not in the offline cache list in sw.js`);
+});
+
+test('the web manifest and page icons point at files that exist', () => {
+  const m = JSON.parse(readFileSync(join(SITE, 'manifest.webmanifest'), 'utf8'));
+  for (const i of m.icons) assert.ok(existsSync(join(SITE, i.src)), i.src);
+  const html = readFileSync(join(SITE, 'index.html'), 'utf8');
+  for (const href of [...html.matchAll(/(?:href|src)="([^"#:]+\.(?:svg|png|css|js|webmanifest))"/g)].map((x) => x[1])) assert.ok(existsSync(join(SITE, href)), `index.html references missing ${href}`);
+});
+
+test('every module the app imports exists and every source file is imported by something (no orphan files)', () => {
+  const srcFiles = listFiles(join(SITE, 'src')).map((p) => relative(SITE, p).replace(/\\/g, '/'));
+  const text = [...srcFiles.map((f) => readFileSync(join(SITE, f), 'utf8')), readFileSync(join(SITE, 'index.html'), 'utf8')].join('\n');
+  for (const f of srcFiles) { const base = f.split('/').pop(); assert.ok(text.includes(`/${base}'`) || text.includes(`src/${base}"`) || text.includes(`./${base}'`), `${f} is never imported`); }
+});
 
 test('wind chill follows the JAG/TI formula and frostbite times follow Environment Canada', () => {
   // -20 C air at 5 m/s (18 km/h) -> about -30 C wind chill

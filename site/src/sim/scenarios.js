@@ -445,11 +445,6 @@ export function buildScenario(id) {
   return entry.build();
 }
 
-/** Run a scenario end to end through the engine. Returns every frame (for playback / scrubbing). */
-export async function runScenario(scn, { seed = 1, followAdvice = false, monitor = {} } = {}) {
-  const { Monitor } = await import('../engine/pipeline.js');
-  return runScenarioSync(scn, Monitor, { seed, followAdvice, monitor });
-}
 
 export function runScenarioSync(scn, Monitor, { seed = 1, followAdvice = false, monitor = {} } = {}) {
   const sim = new Simulator(scn, seed, { followAdvice });

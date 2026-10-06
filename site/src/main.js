@@ -7,7 +7,7 @@ import { Monitor } from './engine/pipeline.js';
 import { buildScenario, buildLiveScenario, runScenarioSync } from './sim/scenarios.js';
 import { evaluateCase, summarise } from './sim/cohort.js';
 import { LIVE_LOCATIONS, loadDay } from './live/openmeteo.js';
-import { PLANTS, plantById, hasShift, hasLive, legacyScenario } from './plants.js';
+import { PLANTS, plantById, hasShift, hasLive } from './plants.js';
 import { renderSensors, initTickets, loadTickets, updateTicketBadge } from './ui/sensors.js';
 import {
   frames, profileOf, renderPlantChip, renderStrip, buildCrew, updateCrew, renderCrewTemps, renderDetail, buildCharts, updateCharts, renderSite,
@@ -33,7 +33,14 @@ const S = {
   read: new Set(), sys: [], nFilter: 'all', tickets: [], replaced: {}, tkFilter: 'all', sensorOpen: new Set(), outlook: null, _fr: null,
   live: { offset: 0, day: null },
 };
-let sim, picker, notif, loadToken = 0;
+let sim, picker, notif, ticketsUi, loadToken = 0;
+
+/** Opens the sensors dialog on a tab; with a ticket id it also brings that ticket into view. */
+function openSensors(tab = 'sensors', ticketId = null) {
+  renderSensors(S, frames(S)[S.idx]);
+  if (!$('#dlg-sensors').open) $('#dlg-sensors').showModal();
+  ticketsUi.goto(tab, ticketId);
+}
 
 // ------------------------------------------------------------------ boot (init() is invoked at the end of this file)
 async function init() {
@@ -59,6 +66,7 @@ async function init() {
     S, list: () => collectNotifications(S), redraw: renderAll,
     onJump: (t, id) => { S.idx = Math.min(maxIdx(), t); S.acc = 0; if (id) S.sel = id; renderAll(); },
     onToggle: (open) => sim.avoid(open ? $('#notif').offsetWidth : 0),
+    onTicket: (id) => openSensors('tickets', id),
   });
   bind();
 
@@ -67,11 +75,9 @@ async function init() {
   S.mode = params.get('follow') === '1' ? 'followed' : 'ignored';
   if (['core', 'hr', 'exp'].includes(params.get('tab'))) S.tab = params.get('tab');
 
-  // ?plant=jaisalmer|platformb|shaybah|deathvalley&mode=sim|live (old ?scenario=thar|offshore|live links still work)
-  let plantId = params.get('plant'), src = params.get('mode');
-  const legacy = legacyScenario(params.get('scenario'));
-  if (!plantId && legacy) { plantId = legacy.plant; src = src || legacy.src; }
-  await loadPlant(PLANTS.some((p) => p.id === plantId) ? plantId : 'jaisalmer', src === 'live' ? 'live' : 'sim');
+  // ?plant=jaisalmer|platformb|witbank|norilsk&mode=sim|live
+  const plantId = params.get('plant');
+  await loadPlant(PLANTS.some((p) => p.id === plantId) ? plantId : 'jaisalmer', params.get('mode') === 'live' ? 'live' : 'sim');
 
   if (params.get('worker') && S.scn.workers.some((w) => w.profile.id === params.get('worker'))) S.sel = params.get('worker');
   if (params.get('t')) S.idx = Math.min(maxIdx(), Math.max(0, Number(params.get('t')) | 0));
@@ -114,7 +120,7 @@ async function loadPlant(plantId, src = 'sim') {
   setPlaying(false);
   let plant = plantById(plantId);
   const wantLive = hasLive(plant) && (src === 'live' || !hasShift(plant));
-  let scn = null, usedSrc = 'sim';
+  let scn, usedSrc = 'sim';
   if (wantLive) {
     S.plant = plant; S.plantId = plant.id; S.src = 'live';
     syncControls();
@@ -357,15 +363,10 @@ function bind() {
   $('#btn-bench').onclick = openBench;
   const st1 = $('#st1');
   st1.setAttribute('role', 'button'); st1.tabIndex = 0; st1.title = 'Show every sensor and its signal strength'; st1.classList.add('click');
-  const tk = initTickets(S, {
+  ticketsUi = initTickets(S, {
     clockText: () => clock(S.scn.startLocalH, S.idx),
-    onChange: (title, why) => { S.sys.push({ key: `sys|tk|${S.sys.length}`, t: S.idx, title, why }); renderAll(); },
+    onChange: (title, why, ticket) => { S.sys.push({ key: `sys|tk|${S.sys.length}`, t: S.idx, title, why, ticket }); renderAll(); },
   });
-  const openSensors = (tab = 'sensors') => {
-    renderSensors(S, frames(S)[S.idx]);
-    if (!$('#dlg-sensors').open) $('#dlg-sensors').showModal();
-    tk.goto(tab);
-  };
   st1.onclick = () => openSensors('sensors');
   st1.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSensors('sensors'); } };
   $('#btn-tickets').onclick = () => openSensors('tickets');
