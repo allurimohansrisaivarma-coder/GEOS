@@ -36,6 +36,8 @@ More views: [full dashboard with ground truth](docs/img/dashboard-full.png) (the
 
 ## Run it
 
+New to this? [GUIDANCE.md](GUIDANCE.md) has the plain-language steps.
+
 Needs [Node.js](https://nodejs.org) 20+. No `npm install` (there are no dependencies).
 
 ```bash
@@ -95,7 +97,7 @@ Why not deep learning? It is safety-critical, there is no public labelled datase
 ## Project layout
 
 ```
-site/                     the app (static; deploy this folder)
+site/                     the app (static files, no build step)
   index.html styles.css flow.css sw.js manifest.webmanifest
   src/engine/             the product: dependency-free, DOM-free, O(1) per sample (1,040 lines)
   src/sim/                physiological simulator, scenarios, benchmark cohort
@@ -108,16 +110,6 @@ bench/run.mjs             benchmark + calibration (`--tune`)
 scripts/                  serve.mjs, fetch-snapshots.mjs, screenshots.ps1, screenshots-interactive.mjs
 docs/img/                 screenshots used in this README and the deck
 ```
-
-## Deploy the demo link (free, about 3 minutes)
-
-The `site/` folder is plain static files. Any static host works; you need an account on the host you pick.
-
-* **Netlify (fastest):** log in at app.netlify.com, open *Sites*, drag the `site` folder onto the "drag and drop" area. You get an `https://….netlify.app` URL.
-* **GitHub Pages:** create an empty repo on github.com, then in this folder run `git init`, `git add .`, `git commit -m "GEOS"`, `git branch -M main`, `git remote add origin <your repo url>`, `git push -u origin main`. In the repo choose *Settings → Pages → Source: GitHub Actions*. The included workflow (`.github/workflows/pages.yml`) runs the tests and publishes `site/` at `https://<you>.github.io/<repo>/`.
-* **Vercel / Cloudflare Pages:** import the folder and set the output directory to `site`.
-
-After deploying: open the URL on a phone, then turn on airplane mode and reload (it should still work: it is an installable offline-capable PWA).
 
 ## Credits and data
 
