@@ -236,7 +236,26 @@
 <!-- ============ SENSORS ============ -->
 <dialog id="dlg-sensors" aria-labelledby="sensors-title">
   <header><h2 id="sensors-title">Sensors <span class="head-sum" id="sensors-sum"></span></h2><button class="btn icon ghost" type="button" data-close aria-label="Close"></button></header>
-  <div class="dbody" id="sensors-body"></div>
+  <div class="dbody">
+    <div class="seg" role="tablist" aria-label="Sensors and maintenance">
+      <button type="button" role="tab" id="tab-sensors" aria-selected="true">Sensors</button>
+      <button type="button" role="tab" id="tab-tickets" aria-selected="false">Tickets</button>
+    </div>
+    <div id="pane-sensors"><div id="sensors-body"></div></div>
+    <div id="pane-tickets" hidden>
+      <form id="tk-form" class="tkform">
+        <p class="small muted">Report a maintenance problem, for example a low strap battery. Resolving a battery ticket swaps the battery.</p>
+        <div class="tk-row">
+          <label>Sensor<select id="tk-sensor" class="inp"></select></label>
+          <label>Issue<select id="tk-issue" class="inp"></select></label>
+          <label>Priority<select id="tk-priority" class="inp"><option>Normal</option><option>High</option><option>Low</option></select></label>
+        </div>
+        <label>Note<input id="tk-note" class="inp" type="text" maxlength="140" placeholder="Optional details"></label>
+        <button type="submit" class="btn primary">Raise ticket</button>
+      </form>
+      <ul id="tk-list" class="tklist"></ul>
+    </div>
+  </div>
 </dialog>
 
 <!-- ============ BENCHMARK ============ -->

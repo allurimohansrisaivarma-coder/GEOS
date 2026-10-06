@@ -42,7 +42,7 @@ export function renderStrip(S, fr) {
   const sens = sensorList(S, fr);
   const online = sens.filter((s) => s.bars > 0).length;
   setStage('st1', online < sens.length ? 1 : avgQ > 0.9 ? 0 : avgQ > 0.6 ? 1 : 2, online === sens.length ? `${sens.length} sensors online` : `${online} of ${sens.length} online`,
-    `Signal ${Math.round(avgQ * 100)}%${faults ? ` · ${faults} fault${faults > 1 ? 's' : ''} handled` : ''}`, (online / sens.length) * 100);
+    `${sens.some((s) => s.low) ? `${sens.filter((s) => s.low).length} low battery` : `Signal ${Math.round(avgQ * 100)}%`}${faults ? ` · ${faults} fault${faults > 1 ? 's' : ''} handled` : ''}`, (online / sens.length) * 100);
 
   const wb = fr.site.thermal.sun.wbgt;
   if (S.scn.cold) {
@@ -63,7 +63,7 @@ export function renderStrip(S, fr) {
 }
 function setStage(id, lvl, metric, sub, pct) {
   const el = $('#' + id);
-  el.className = `stage lv${lvl}`;
+  el.className = `stage lv${lvl}${el.getAttribute('role') === 'button' ? ' click' : ''}`;
   $('#' + id + '-m').textContent = metric;
   $('#' + id + '-s').textContent = sub;
   el.style.setProperty('--pct', `${clamp(pct, 0, 100)}%`);

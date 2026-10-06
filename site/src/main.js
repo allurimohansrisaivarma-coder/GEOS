@@ -8,7 +8,7 @@ import { buildScenario, buildLiveScenario, runScenarioSync } from './sim/scenari
 import { evaluateCase, summarise } from './sim/cohort.js';
 import { LIVE_LOCATIONS, loadDay } from './live/openmeteo.js';
 import { PLANTS, plantById, hasShift, hasLive, legacyScenario } from './plants.js';
-import { renderSensors } from './ui/sensors.js';
+import { renderSensors, initTickets } from './ui/sensors.js';
 import {
   frames, profileOf, renderPlantChip, renderStrip, buildCrew, updateCrew, renderDetail, buildCharts, updateCharts, renderSite,
   buildRunLog, renderBench,
@@ -28,7 +28,7 @@ const S = {
   showTruth: false, sound: false, blackout: false,
   relay: { queued: 0, sent: 0 },
   charts: {}, tableOn: {},
-  read: new Set(), sys: [], nFilter: 'all',
+  read: new Set(), sys: [], nFilter: 'all', tickets: [], replaced: {}, _fr: null,
   live: { offset: 0, day: null },
 };
 let sim, picker, notif, loadToken = 0;
@@ -141,7 +141,7 @@ async function loadPlant(plantId, src = 'sim') {
   S.runs.ignored.log = buildRunLog(S.runs.ignored);
   S.runs.followed.log = buildRunLog(S.runs.followed);
   S.runMs = performance.now() - t0;
-  S.idx = 0; S.acc = 0; S.relay = { queued: 0, sent: 0 }; S.read = new Set(); S.sys = []; S._chip = null;
+  S.idx = 0; S.acc = 0; S.relay = { queued: 0, sent: 0 }; S.read = new Set(); S.sys = []; S._chip = null; S.tickets = []; S.replaced = {};
   resetNotifications();
   if (!scn.workers.some((w) => w.profile.id === S.sel)) S.sel = scn.workers[0].profile.id;
   $('#scrub').max = String(scn.durationMin - 1);
@@ -184,6 +184,7 @@ function draw() {
   const fr = frames(S)[S.idx];
   if (!fr) return;
   const dur = S.scn.durationMin;
+  S._fr = fr;
   $('#clock').textContent = clock(S.scn.startLocalH, S.idx);
   const date = new Date(S.scn.startUtcMs + S.scn.tzMin * 60000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   $('#clock-sub').textContent = `${date} · ${hm(S.idx)} of ${hm(dur)}`;
@@ -341,6 +342,10 @@ function bind() {
   $('#btn-bench').onclick = openBench;
   const st1 = $('#st1');
   st1.setAttribute('role', 'button'); st1.tabIndex = 0; st1.title = 'Show every sensor and its signal strength'; st1.classList.add('click');
+  initTickets(S, {
+    clockText: () => clock(S.scn.startLocalH, S.idx),
+    onChange: (title, why) => { S.sys.push({ key: `sys|tk|${S.sys.length}`, t: S.idx, title, why }); renderAll(); },
+  });
   const openSensors = () => { renderSensors(S, frames(S)[S.idx]); $('#dlg-sensors').showModal(); };
   st1.onclick = openSensors;
   st1.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSensors(); } };
