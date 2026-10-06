@@ -21,6 +21,7 @@ export const ICON = {
   close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
   wifiOff: svg('<path d="M2 8.8a15 15 0 0 1 4-2.3M22 8.8a15 15 0 0 0-8.5-3.7M5 12.5a10 10 0 0 1 3.2-2M19 12.5a10 10 0 0 0-4.9-2.5M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>'),
   bell: svg('<path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+  ticket: svg('<rect x="5" y="4.5" width="14" height="16.5" rx="2.2"/><path d="M9 4.5V3h6v1.5M9 10.5h6M9 14.5h6M9 18h3"/>'),
   vol: svg('<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>'),
   minus: svg('<path d="M5 12h14"/>'),
   expand: svg('<path d="M14 4h6v6M10 20H4v-6M20 4l-7.5 7.5M4 20l7.5-7.5"/>'),

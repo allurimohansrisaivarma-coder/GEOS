@@ -182,7 +182,7 @@ test('alert policy: acute gas alarms immediately; sensor loss never fails silent
   let s;
   for (let t = 0; t < 6; t++) s = q.step(base({ t, minutesWithoutHr: 12, wbgtEff: 29, limit: 28 }));
   assert.ok(s.level >= 1, 'blind in the heat -> at least WATCH');
-  assert.ok(s.reasons.some((x) => /sensor lost/i.test(x)));
+  assert.ok(s.reasons.some((x) => /GEOS-Strap.*signal lost/i.test(x)));
 });
 
 test('alert policy: uncertain estimates use the earliest plausible crossing time', () => {

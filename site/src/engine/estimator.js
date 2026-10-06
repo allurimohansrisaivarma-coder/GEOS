@@ -73,7 +73,7 @@ export class CoreTempEstimator {
     const eq = dW >= 0
       ? this.p.tcAtLimit + this.p.eqCap * Math.tanh((this.p.gUp * dW) / this.p.eqCap)
       : this.p.tcAtLimit + this.p.gLo * dW;
-    const floor = 36.9 + 0.0012 * (M - 115);
+    const floor = 36.4 + 0.0012 * (M - 115); // in the cold the body settles a little below 37 C (shivering holds it near 36.5)
     return clamp(eq, floor, 41.5);
   }
 

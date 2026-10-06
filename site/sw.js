@@ -2,10 +2,10 @@
 // Strategy: network-first with cache fallback for our own files (always fresh when online, still works offline);
 // third-party weather requests are never cached here - the app falls back to its own bundled snapshot.
 
-const CACHE = 'geos-v4';
+const CACHE = 'geos-v5';
 const CORE = [
   './', 'index.html', 'styles.css', 'flow.css', 'manifest.webmanifest', 'icon.svg',
-  'src/main.js', 'src/plants.js', 'src/ui/dom.js', 'src/ui/icons.js', 'src/ui/charts.js', 'src/ui/views.js', 'src/ui/simpanel.js', 'src/ui/notifications.js', 'src/ui/sensors.js', 'src/engine/cold.js',
+  'src/main.js', 'src/plants.js', 'src/ui/dom.js', 'src/ui/icons.js', 'src/ui/charts.js', 'src/ui/views.js', 'src/ui/simpanel.js', 'src/ui/notifications.js', 'src/ui/sensors.js', 'src/ui/forecast.js', 'src/outlook.js', 'src/engine/cold.js',
   'src/engine/psychro.js', 'src/engine/solar.js', 'src/engine/wbgt.js', 'src/engine/limits.js', 'src/engine/qc.js',
   'src/engine/cusum.js', 'src/engine/estimator.js', 'src/engine/strain.js', 'src/engine/dose.js', 'src/engine/alerts.js', 'src/engine/pipeline.js',
   'src/sim/rng.js', 'src/sim/physiology.js', 'src/sim/scenarios.js', 'src/sim/cohort.js', 'src/live/openmeteo.js',

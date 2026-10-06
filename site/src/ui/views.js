@@ -3,7 +3,7 @@
 import { $, esc, f1, clock } from './dom.js';
 import { ICON, LEVEL_ICON, LEVEL_LABEL, badge } from './icons.js';
 import { LineChart, sparkline } from './charts.js';
-import { CLOTHING, wbgtLimit } from '../engine/limits.js';
+import { CLOTHING, wbgtLimit, heatCategory } from '../engine/limits.js';
 import { coldCategory } from '../engine/cold.js';
 import { sensorList } from './sensors.js';
 
@@ -49,7 +49,7 @@ export function renderStrip(S, fr) {
     const wc = fr.site.windChill, cc = coldCategory(wc);
     setStage('st2', cc[1], `Wind chill ${Math.round(wc)} °C`, `${cc[0]}${fr.site.pm.level ? ' + dust' : ''}`, clamp(-wc / 55, 0, 1) * 100);
   } else {
-    const cat = wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
+    const cat = heatCategory(wb);
     setStage('st2', cat[1], `WBGT ${f1(wb)} °C`, `${cat[0]} heat load${fr.site.pm.level ? ' + dust' : ''}`, clamp((wb - 20) / 16, 0, 1) * 100);
   }
 
@@ -110,6 +110,44 @@ export function updateCrew(S, fr) {
     if (w.level >= 2) nAlert++;
   }
   $('#crew-sum').textContent = nAlert ? `${nAlert} need attention` : 'All within range';
+}
+
+// ------------------------------------------------------------------ everyone's body temperature against the ideal range
+// Ideal: 36.5 to 37.5 C. NIOSH recommends keeping core temperature under 38.0 C, GEOS warns from 38.2 C and treats 38.9 C
+// as danger. In cold sites the scale also reaches down to 35 C, where cooling becomes a concern.
+export function renderCrewTemps(S, fr) {
+  const host = $('#crew-temps');
+  if (!host) return;
+  const ws = S.scn.workers.map((w) => ({ id: w.profile.id, name: first(w.profile.name), w: fr.workers[w.profile.id] }));
+  const cold = !!S.scn.cold;
+  const lo = cold ? 35 : 36, hi = 40;
+  const W = 300, x0 = 54, x1 = 226, rowH = 37, top = 30;
+  const X = (v) => x0 + ((clamp(v, lo, hi) - lo) / (hi - lo)) * (x1 - x0);
+  const H = top + ws.length * rowH + 26;
+  const bands = [[lo, 36.5, 'var(--info, #5b8def)', 0.16, cold], [36.5, 37.5, 'var(--good)', 0.32, true], [37.5, 38.0, 'var(--warn)', 0.26, true], [38.0, 38.5, 'var(--serious)', 0.26, true], [38.5, hi, 'var(--crit)', 0.26, true]];
+  let o = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Estimated body temperature of each worker against the ideal range of 36.5 to 37.5 degrees" style="display:block;overflow:visible">`;
+  o += `<text class="ax" x="${X(37)}" y="10" text-anchor="middle">ideal 37.0</text>`;
+  ws.forEach((r, i) => {
+    const y = top + i * rowH + rowH / 2;
+    const w = r.w, sel = r.id === S.sel;
+    o += `<g class="ct-row${sel ? ' sel' : ''}" data-id="${esc(r.id)}" tabindex="0" role="button" aria-label="${esc(r.name)}: ${f1(w.tc)} degrees, ${LEVEL_LABEL[w.level]}">`;
+    o += `<rect x="0" y="${y - rowH / 2 + 1}" width="${W}" height="${rowH - 2}" rx="8" class="ct-hit"/>`;
+    o += `<text class="lbl${sel ? '-strong' : ''}" x="6" y="${y + 4}">${esc(r.name)}</text>`;
+    o += `<clipPath id="ct-c${i}"><rect x="${x0}" y="${y - 5}" width="${x1 - x0}" height="10" rx="5"/></clipPath><g clip-path="url(#ct-c${i})">`;
+    for (const [a, b, c, op, show] of bands) if (show && b > a) o += `<rect x="${X(a)}" y="${y - 5}" width="${Math.max(0, X(b) - X(a))}" height="10" fill="${c}" opacity="${op}"/>`;
+    o += '</g>';
+    if (S.showTruth && w.truth) o += `<circle cx="${X(w.truth.tc)}" cy="${y}" r="6.5" fill="none" stroke="var(--ink-2)" stroke-width="1.6"/>`;
+    o += `<circle cx="${X(w.tc)}" cy="${y}" r="5.2" fill="${LV_COLOR[w.level]}" stroke="var(--surface)" stroke-width="2"/>`;
+    const d = w.tc - 37.0;
+    o += `<text class="ct-v" x="${W - 6}" y="${y - 1}" text-anchor="end">${f1(w.tc)}<tspan class="ct-u"> °C</tspan></text><text class="ax" x="${W - 6}" y="${y + 12}" text-anchor="end">${d >= 0 ? '+' : '-'}${f1(Math.abs(d))} vs 37.0</text>`;
+    o += '</g>';
+  });
+  const yb = top + ws.length * rowH;
+  o += `<line x1="${X(37)}" x2="${X(37)}" y1="${top - 6}" y2="${yb}" stroke="var(--ink-2)" stroke-dasharray="3 3" stroke-width="1" opacity=".7"/>`;
+  [36, 37, 38, 39, 40].filter((v) => v >= lo).concat(cold ? [35] : []).forEach((v) => { o += `<text class="ax" x="${X(v)}" y="${yb + 12}" text-anchor="middle">${v}</text>`; });
+  o += '</svg>';
+  const key = `<div class="ct-key"><span><i style="background:var(--good)"></i>Ideal 36.5 to 37.5</span><span><i style="background:var(--warn)"></i>Limit 38.0</span><span><i style="background:var(--crit)"></i>Danger 38.5+</span>${S.showTruth ? '<span><i class="ring"></i>True (simulator)</span>' : ''}</div>`;
+  host.innerHTML = `<div class="ct-head"><h3 class="eyebrow">Body temperature</h3><span class="p-note">estimated core, °C</span></div>${o}${key}`;
 }
 
 // ------------------------------------------------------------------ selected worker
@@ -218,9 +256,10 @@ function hrKpi(S, w, id) {
   const mid = known.length ? (Math.min(...known) + Math.max(...known)) / 2 : 100;
   const half = Math.max(10, known.length ? (Math.max(...known) - Math.min(...known)) / 2 + 3 : 10);
   const spark = sparkline(pts, { w: 100, h: 20, color: state === 'lost' ? 'var(--muted)' : 'var(--s2)', lo: mid - half, hi: mid + half, ref: null });
-  const tip = `Last reading ${clock(S.scn.startLocalH, lastT)}${val != null ? `: ${shown} bpm` : ''}. The strap reports once a minute.`;
+  const tip = `Last reading ${clock(S.scn.startLocalH, lastT)}${val != null ? `: ${shown} bpm` : ''}. The GEOS-Strap reports once a minute.`;
+  const tkOpen = S.tickets.find((k) => k.sensor === `hr-${id}` && k.status !== 'Resolved');
   const phase = -Math.round(performance.now() % 1600); // keeps the pulse continuous although the card is redrawn every frame
-  return `<div class="kpi hr ${state}" title="${esc(tip)}"><span class="k-lab">Heart rate${state === 'lost' ? '<span class="tag">No signal</span>' : ''}</span>
+  return `<div class="kpi hr ${state}" title="${esc(tip)}"><span class="k-lab">Heart rate${state === 'lost' ? '<span class="tag">No signal</span>' : ''}${tkOpen ? `<span class="tag tk" title="Maintenance ticket ${tkOpen.id}: ${esc(tkOpen.issue)}">${tkOpen.id}</span>` : ''}</span>
     <span class="k-val">${shown}<small>bpm</small></span><span class="k-spark">${spark}</span>
     <span class="k-note live"><i class="live-dot" style="animation-delay:${phase}ms"></i>${esc(text)}</span></div>`;
 }
@@ -368,7 +407,7 @@ export function renderSite(S, fr) {
   const cold = !!S.scn.cold;
   const wb = th.sun.wbgt;
   const wc = fr.site.windChill;
-  const heatCat = wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
+  const heatCat = heatCategory(wb);
   const cat = cold ? coldCategory(wc) : heatCat;
   const big = cold ? wc : wb;
   const lo = cold ? -50 : 18, hi = cold ? 0 : 38, W = 284;

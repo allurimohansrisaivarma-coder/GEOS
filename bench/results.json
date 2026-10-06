@@ -1,5 +1,5 @@
 {
-  "generated": "2026-10-06T20:51:03.707Z",
+  "generated": "2026-10-06T21:23:37.915Z",
   "n": 600,
   "seeds": "1000..1599",
   "calibrationSeeds": "1..300",
@@ -409,27 +409,12 @@
       }
     },
     "rmse": {
-      "fusion": 0.3144229065915139,
-      "hrOnly": 0.4558478364899115,
-      "prior": 0.730127256454341
+      "fusion": 0.314343500151099,
+      "hrOnly": 0.4558259974619671,
+      "prior": 0.7307148870201235
     },
-    "alertsPerWorkerHour": 0.305
+    "alertsPerWorkerHour": 0.30527777777777776
   },
-  "closedLoop": {
-    "open": {
-      "exceed385": 35,
-      "exceed39": 10,
-      "minutes385": 5504,
-      "peakSum": 5718.378560332613,
-      "n": 150
-    },
-    "closed": {
-      "exceed385": 10,
-      "exceed39": 2,
-      "minutes385": 725,
-      "peakSum": 5694.342505787225,
-      "n": 150
-    }
-  },
+  "closedLoop": null,
   "closedLoopN": 150
 }

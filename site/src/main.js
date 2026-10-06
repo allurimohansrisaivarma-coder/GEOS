@@ -8,11 +8,13 @@ import { buildScenario, buildLiveScenario, runScenarioSync } from './sim/scenari
 import { evaluateCase, summarise } from './sim/cohort.js';
 import { LIVE_LOCATIONS, loadDay } from './live/openmeteo.js';
 import { PLANTS, plantById, hasShift, hasLive, legacyScenario } from './plants.js';
-import { renderSensors, initTickets } from './ui/sensors.js';
+import { renderSensors, initTickets, loadTickets, updateTicketBadge } from './ui/sensors.js';
 import {
-  frames, profileOf, renderPlantChip, renderStrip, buildCrew, updateCrew, renderDetail, buildCharts, updateCharts, renderSite,
+  frames, profileOf, renderPlantChip, renderStrip, buildCrew, updateCrew, renderCrewTemps, renderDetail, buildCharts, updateCharts, renderSite,
   buildRunLog, renderBench,
 } from './ui/views.js';
+import { renderForecast } from './ui/forecast.js';
+import { simOutlook, liveOutlook } from './outlook.js';
 import { initSimPanel, initPlantPicker } from './ui/simpanel.js';
 import { collectNotifications, renderNotifications, resetNotifications, initNotifications } from './ui/notifications.js';
 
@@ -28,7 +30,7 @@ const S = {
   showTruth: false, sound: false, blackout: false,
   relay: { queued: 0, sent: 0 },
   charts: {}, tableOn: {},
-  read: new Set(), sys: [], nFilter: 'all', tickets: [], replaced: {}, _fr: null,
+  read: new Set(), sys: [], nFilter: 'all', tickets: [], replaced: {}, tkFilter: 'all', sensorOpen: new Set(), outlook: null, _fr: null,
   live: { offset: 0, day: null },
 };
 let sim, picker, notif, loadToken = 0;
@@ -39,6 +41,7 @@ async function init() {
   $('#btn-bench').innerHTML = `${ICON.chart}<span>Benchmark</span>`;
   $('#btn-how').innerHTML = ICON.info;
   $('#bell-ico').innerHTML = ICON.bell;
+  $('#tk-ico').innerHTML = ICON.ticket;
   $('#restart').innerHTML = ICON.reset;
   $('#chart-table').innerHTML = `${ICON.table}<span>Table</span>`;
   $$('[data-close]').forEach((b) => { b.innerHTML = ICON.close; b.onclick = () => b.closest('dialog').close(); });
@@ -80,6 +83,7 @@ async function init() {
   if (params.get('bench') === '1') openBench();
   if (params.get('how') === '1') $('#dlg-how').showModal();
   if (params.get('sensors') === '1') $('#st1').click();
+  if (params.get('tickets') === '1') $('#btn-tickets').click();
   // A cold visitor should see the story unfold: autoplay unless a specific moment / paused state was requested.
   const auto = params.get('autoplay');
   if (auto === '1' || (auto == null && params.get('paused') !== '1' && !params.get('t') && !params.get('bench') && !params.get('how') && !params.get('notif'))) {
@@ -141,8 +145,16 @@ async function loadPlant(plantId, src = 'sim') {
   S.runs.ignored.log = buildRunLog(S.runs.ignored);
   S.runs.followed.log = buildRunLog(S.runs.followed);
   S.runMs = performance.now() - t0;
-  S.idx = 0; S.acc = 0; S.relay = { queued: 0, sent: 0 }; S.read = new Set(); S.sys = []; S._chip = null; S.tickets = []; S.replaced = {};
+  S.idx = 0; S.acc = 0; S.relay = { queued: 0, sent: 0 }; S.read = new Set(); S.sys = []; S._chip = null; S.sensorOpen = new Set();
+  loadTickets(S); // tickets are kept per plant in this browser
   resetNotifications();
+  // tomorrow's outlook: simulated straight away, replaced by the real forecast when live weather is in use and reachable
+  S.outlook = simOutlook(S);
+  if (usedSrc === 'live') {
+    const loc = LIVE_LOCATIONS.find((l) => l.key === plant.live);
+    liveOutlook(S, loc).then((o) => { if (token === loadToken) { S.outlook = o; renderAll(); } })
+      .catch(() => { if (token === loadToken) { S.outlook = { ...S.outlook, source: 'offline' }; renderAll(); } });
+  }
   if (!scn.workers.some((w) => w.profile.id === S.sel)) S.sel = scn.workers[0].profile.id;
   $('#scrub').max = String(scn.durationMin - 1);
   buildCrew(S);
@@ -200,9 +212,12 @@ function draw() {
   renderPlantChip(S, fr);
   renderStrip(S, fr);
   updateCrew(S, fr);
+  renderCrewTemps(S, fr);
   renderDetail(S, fr);
   updateCharts(S);
   renderSite(S, fr);
+  renderForecast(S);
+  updateTicketBadge(S);
   renderNotifications(S, collectNotifications(S));
   if ($('#dlg-sensors').open) renderSensors(S, fr);
 }
@@ -342,13 +357,19 @@ function bind() {
   $('#btn-bench').onclick = openBench;
   const st1 = $('#st1');
   st1.setAttribute('role', 'button'); st1.tabIndex = 0; st1.title = 'Show every sensor and its signal strength'; st1.classList.add('click');
-  initTickets(S, {
+  const tk = initTickets(S, {
     clockText: () => clock(S.scn.startLocalH, S.idx),
     onChange: (title, why) => { S.sys.push({ key: `sys|tk|${S.sys.length}`, t: S.idx, title, why }); renderAll(); },
   });
-  const openSensors = () => { renderSensors(S, frames(S)[S.idx]); $('#dlg-sensors').showModal(); };
-  st1.onclick = openSensors;
-  st1.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSensors(); } };
+  const openSensors = (tab = 'sensors') => {
+    renderSensors(S, frames(S)[S.idx]);
+    if (!$('#dlg-sensors').open) $('#dlg-sensors').showModal();
+    tk.goto(tab);
+  };
+  st1.onclick = () => openSensors('sensors');
+  st1.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSensors('sensors'); } };
+  $('#btn-tickets').onclick = () => openSensors('tickets');
+  $('#crew-temps').onclick = (e) => { const r = e.target.closest('[data-id]'); if (r) { S.sel = r.dataset.id; renderAll(); } };
   $('#plant-chip').onclick = () => { sim.setOpen(true); picker.open(); };
   $$('#src-seg button').forEach((b) => { b.onclick = () => { if (!b.disabled && b.dataset.src !== S.src) loadPlant(S.plantId, b.dataset.src); }; });
   $$('#speed-seg button').forEach((b) => { b.onclick = () => { S.speed = Number(b.dataset.speed); syncControls(); }; });
@@ -382,6 +403,7 @@ function bind() {
     if (e.code === 'Space' && tag !== 'BUTTON') { e.preventDefault(); setPlaying(!S.playing); }
     else if (e.key === 'r' || e.key === 'R') restart();
     else if (e.key === 'n' || e.key === 'N') notif.toggle();
+    else if (e.key === 't' || e.key === 'T') $('#btn-tickets').click();
   });
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', (ev) => { if (!store.get('theme')) applyTheme(ev.matches ? 'dark' : 'light'); });
 }
