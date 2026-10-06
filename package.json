@@ -1,0 +1,14 @@
+{
+  "name": "geos-early-warning",
+  "version": "1.0.0",
+  "description": "GEOS - predictive early warning for environmental stress in remote and extreme work settings (The Grand Hack, Computer Science track)",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node scripts/serve.mjs",
+    "test": "node --test \"tests/*.test.js\"",
+    "bench": "node bench/run.mjs",
+    "snapshots": "node scripts/fetch-snapshots.mjs"
+  }
+}

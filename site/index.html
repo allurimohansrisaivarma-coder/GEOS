@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GEOS Early Warning</title>
+  <meta name="description" content="GEOS monitors the environment, estimates each worker's heat and gas exposure and warns before it harms them. Works offline.">
+  <meta name="theme-color" content="#e9e7e0" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1114" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;600&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="flow.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to dashboard</a>
+
+<header class="topbar">
+  <div class="tb-left">
+    <div class="brand"><span id="logo"></span><b>GEOS</b></div>
+    <span class="tb-sep" aria-hidden="true"></span>
+    <button class="plant-chip" id="plant-chip" type="button" aria-label="Change plant" title="Change plant">
+      <span class="pc-ico" id="pc-ico"></span>
+      <span class="pc-txt"><b id="pc-name">&nbsp;</b><small id="pc-sub">&nbsp;</small></span>
+      <span class="pc-state" id="pc-state"></span>
+    </button>
+  </div>
+  <div class="tb-right">
+    <button class="btn ghost" id="btn-bench" type="button" title="Benchmark results"></button>
+    <button class="btn icon ghost" id="btn-how" type="button" aria-label="How it works" title="How it works"></button>
+    <button class="btn icon ghost bell" id="btn-bell" type="button" aria-label="Notifications" aria-expanded="false" aria-controls="notif" title="Notifications (N)">
+      <span class="bell-ico" id="bell-ico"></span><span class="bell-count" id="bell-count" hidden>0</span>
+    </button>
+    <button class="btn icon ghost" id="btn-theme" type="button" aria-label="Toggle light and dark theme" title="Toggle theme"></button>
+  </div>
+</header>
+
+<main id="main" class="wrap">
+  <section class="strip" id="strip" aria-label="Pipeline status">
+    <div class="stage" id="st1"><span class="s-top"><span class="s-num">01</span><span class="s-name">Monitor</span><i class="s-dot"></i></span><b class="s-val" id="st1-m">-</b><span class="s-sub" id="st1-s">-</span></div>
+    <div class="stage" id="st2"><span class="s-top"><span class="s-num">02</span><span class="s-name">Detect</span><i class="s-dot"></i></span><b class="s-val" id="st2-m">-</b><span class="s-sub" id="st2-s">-</span></div>
+    <div class="stage" id="st3"><span class="s-top"><span class="s-num">03</span><span class="s-name">Assess</span><i class="s-dot"></i></span><b class="s-val" id="st3-m">-</b><span class="s-sub" id="st3-s">-</span></div>
+    <div class="stage" id="st4"><span class="s-top"><span class="s-num">04</span><span class="s-name">Warn</span><i class="s-dot"></i></span><b class="s-val" id="st4-m">-</b><span class="s-sub" id="st4-s">-</span></div>
+  </section>
+
+  <div class="bench">
+    <section class="panel crew" aria-label="Crew">
+      <header class="p-head"><h2 class="eyebrow">Crew</h2><span class="p-note" id="crew-sum"></span></header>
+      <div class="crew-list" id="crew-list"></div>
+    </section>
+
+    <section class="panel detail" id="detail" aria-label="Selected worker">
+      <div class="d-head" id="d-head"></div>
+      <div class="d-kpis" id="d-hero"></div>
+      <div class="d-chart">
+        <div class="d-chart-bar">
+          <div class="tabs" role="tablist" aria-label="Chart" id="chart-tabs">
+            <button type="button" role="tab" data-tab="core" aria-selected="true">Core temperature</button>
+            <button type="button" role="tab" data-tab="hr" aria-selected="false">Heart rate</button>
+            <button type="button" role="tab" data-tab="exp" aria-selected="false">Exposure</button>
+          </div>
+          <div class="legend" id="chart-legend"></div>
+          <button class="btn sm ghost" id="chart-table" type="button" aria-pressed="false" title="Switch between chart and table"></button>
+        </div>
+        <div id="ch-core"></div>
+        <div id="ch-hr" hidden></div>
+        <div id="ch-exp" hidden></div>
+      </div>
+      <div class="d-split">
+        <div class="d-box" id="d-why"></div>
+        <div class="d-box" id="d-act"></div>
+      </div>
+      <div class="d-split lower" id="d-lower">
+        <div class="d-box wear"><h3 class="eyebrow">On the wrist</h3><div id="d-watch"></div></div>
+        <div class="d-box"><h3 class="eyebrow">Warning lead time</h3><div id="d-race" class="race"></div></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <section class="panel site" aria-label="Site conditions">
+        <header class="p-head"><h2 class="eyebrow">Site conditions</h2><span class="p-note" id="site-place"></span></header>
+        <div class="body" id="site-body"></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="foot">
+    <span>GEOS, built for The Grand Hack (Computer Science track)</span>
+    <span>Simulated data. Live weather by <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0)</span>
+    <span>Decision support, not a medical device</span>
+  </footer>
+</main>
+
+<!-- ============ FLOATING SIMULATION PANEL ============ -->
+<div class="sim" id="sim" data-open="true">
+  <section class="sim-card" id="sim-card" aria-label="Simulation controls">
+    <header class="sim-head" id="sim-handle">
+      <span class="grip" id="sim-grip" aria-hidden="true"></span>
+      <span class="eyebrow">Simulation</span>
+      <span class="grow"></span>
+      <button class="btn icon sm ghost" id="sim-min" type="button" aria-label="Minimise simulation panel" title="Minimise (M)"></button>
+    </header>
+    <div class="sim-body">
+      <div class="dd" id="dd-plant">
+        <div class="dd-top">
+          <span class="lab" id="lab-plant">Plant</span>
+          <div class="seg mini" id="src-seg" role="group" aria-label="Weather source">
+            <button type="button" data-src="sim" aria-pressed="true" title="A scripted shift with events">Simulated</button>
+            <button type="button" data-src="live" aria-pressed="false" title="Today's real weather at the plant">Live</button>
+          </div>
+        </div>
+        <button type="button" class="dd-btn" id="plant-btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="lab-plant plant-btn"></button>
+        <ul class="dd-list" id="plant-list" role="listbox" aria-labelledby="lab-plant" tabindex="-1" hidden></ul>
+      </div>
+
+      <div class="sim-time">
+        <b id="clock" class="tnum">--:--</b>
+        <span id="clock-sub">&nbsp;</span>
+      </div>
+      <div class="scrub">
+        <div class="ticks" id="ticks" aria-hidden="true"></div>
+        <input type="range" id="scrub" min="0" max="359" value="0" step="1" aria-label="Shift time">
+      </div>
+
+      <div class="sim-transport">
+        <button class="btn icon" id="restart" type="button" aria-label="Restart" title="Restart (R)"></button>
+        <button class="btn primary play" id="play" type="button" title="Play or pause (Space)"></button>
+        <div class="seg" id="speed-seg" role="group" aria-label="Playback speed">
+          <button type="button" data-speed="2" aria-pressed="false">2×</button>
+          <button type="button" data-speed="6" aria-pressed="true">6×</button>
+          <button type="button" data-speed="15" aria-pressed="false">15×</button>
+          <button type="button" data-speed="40" aria-pressed="false">40×</button>
+        </div>
+      </div>
+
+      <div class="switches">
+        <button type="button" class="sw" role="switch" aria-checked="false" id="sw-follow" title="Workers act on the warnings: they take shade breaks"><i></i><span>Follow advice</span></button>
+        <button type="button" class="sw" role="switch" aria-checked="false" id="sw-truth" title="Show the simulator's hidden true core temperature"><i></i><span>Ground truth</span></button>
+        <button type="button" class="sw" role="switch" aria-checked="false" id="sw-comms" title="Cut the link to the supervisor: alerts stay on the devices and queue"><i></i><span>Comms blackout</span></button>
+        <button type="button" class="sw" role="switch" aria-checked="false" id="sw-sound" title="Beep and vibrate on new alerts"><i></i><span>Sound</span></button>
+      </div>
+
+      <div class="live-box" id="live-box" hidden>
+        <label class="lab" for="live-off">Heat stress test <b id="live-off-v">+0 °C</b></label>
+        <input type="range" id="live-off" min="0" max="12" step="1" value="0">
+        <p class="live-status" id="live-status" role="status"></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="sim-fab" id="sim-fab" data-level="0">
+    <svg class="ring" viewBox="0 0 64 64" aria-hidden="true"><circle class="trk" cx="32" cy="32" r="28"/><circle class="prg" id="fab-ring" cx="32" cy="32" r="28"/></svg>
+    <button type="button" class="fab-main" id="fab-play" aria-label="Play"></button>
+    <button type="button" class="fab-open" id="fab-open" aria-label="Open simulation panel" title="Open simulation panel"></button>
+  </div>
+</div>
+
+<!-- ============ NOTIFICATIONS ============ -->
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="notif" aria-label="Notifications" inert>
+  <header class="dr-head">
+    <h2>Notifications</h2>
+    <span class="count-chip" id="notif-chip">0 new</span>
+    <span class="grow"></span>
+    <button class="btn sm ghost" id="notif-readall" type="button"></button>
+    <button class="btn icon sm ghost" id="notif-close" type="button" aria-label="Close notifications"></button>
+  </header>
+  <div class="dr-sub">
+    <div class="seg" id="notif-filter" role="group" aria-label="Filter notifications">
+      <button type="button" data-f="all" aria-pressed="true">All</button>
+      <button type="button" data-f="unread" aria-pressed="false">Unread</button>
+    </div>
+    <p class="link-banner" id="link-banner" hidden></p>
+  </div>
+  <ol class="nlist" id="nlist"></ol>
+</aside>
+
+<div id="sr-live" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+<!-- ============ HOW IT WORKS ============ -->
+<dialog id="dlg-how" aria-labelledby="how-title">
+  <header><h2 id="how-title">How GEOS works</h2><button class="btn icon ghost" type="button" data-close aria-label="Close"></button></header>
+  <div class="dbody">
+    <p class="lead">Environment is not exposure. The same 42 °C afternoon endangers a new hire in a double-layer suit but not an acclimatised supervisor in the shade. GEOS works out what is happening to each person and warns on the forecast, not the damage.</p>
+
+    <div class="flow" aria-label="Pipeline">
+      <div class="fl"><b>Sensors</b><span>Weather, wearable heart rate, personal gas</span></div>
+      <i></i>
+      <div class="fl"><b>1 Monitor</b><span>Spike, dropout and stuck-sensor checks</span></div>
+      <i></i>
+      <div class="fl"><b>2 Detect</b><span>WBGT heat load, sudden dust or gas changes</span></div>
+      <i></i>
+      <div class="fl"><b>3 Assess</b><span>Core temperature, strain, gas dose per person</span></div>
+      <i></i>
+      <div class="fl hot"><b>4 Warn</b><span>Forecast, reasons and actions, on the device first</span></div>
+    </div>
+
+    <h3>Predict with the environment, correct with the body</h3>
+    <div class="cards3">
+      <div class="mcard"><h4>Prior</h4><p>A heat-strain model driven by WBGT, clothing and workload, anchored to NIOSH limits, sees heat building before the body shows it.</p></div>
+      <div class="mcard"><h4>Correction</h4><p>Heart rate corrects it through a Kalman filter (Buller et al. 2013). A second state learns each worker's own drift.</p></div>
+      <div class="mcard"><h4>Graceful failure</h4><p>If a strap drops out, the filter keeps predicting, widens its uncertainty and says so. It never fails silent.</p></div>
+    </div>
+
+    <h3>Alerts people trust</h3>
+    <ul>
+      <li><b>Predictive:</b> WARNING when the forecast reaches 38.5 °C within 20 minutes; DANGER near 39 °C.</li>
+      <li><b>Sticky:</b> three samples to escalate, twelve calm ones to step down. No flapping.</li>
+      <li><b>Explainable:</b> every alert carries its reasons and a concrete action, including a NIOSH work/rest split.</li>
+      <li><b>Dose, not just level:</b> H<sub>2</sub>S uses a 10-minute dose from the personal monitor, because the area sensor can read fine while one person is not.</li>
+    </ul>
+
+    <h3>Honest limits</h3>
+    <ul>
+      <li>The benchmark is synthetic. It is not clinical validation.</li>
+      <li>Heart-rate estimates are weaker for very fit or heavily acclimatised people.</li>
+      <li>WBGT assumes the ground is at air temperature, which under-reads radiant heat from hot desert ground. Decision support, not a medical device.</li>
+    </ul>
+
+    <details class="refs">
+      <summary>References</summary>
+      <ul class="small">
+        <li>Liljegren et al. (2008). Modeling the Wet Bulb Globe Temperature Using Standard Meteorological Measurements. <i>J Occup Environ Hyg</i> 5(10).</li>
+        <li>NIOSH (2016). Criteria for a Recommended Standard: Occupational Exposure to Heat and Hot Environments.</li>
+        <li>Buller et al. (2013). Estimation of human core temperature from sequential heart rate observations. <i>Physiol Meas</i> 34(7).</li>
+        <li>Moran, Shitzer, Pandolf (1998). A physiological strain index to evaluate heat stress. <i>Am J Physiol</i> 275.</li>
+        <li>ILO (2024). Ensuring safety and health at work in a changing climate. NIOSH/OSHA H<sub>2</sub>S limits: 10 ppm 10-min REL, 20 ppm ceiling, 100 ppm IDLH.</li>
+      </ul>
+    </details>
+  </div>
+</dialog>
+
+<!-- ============ BENCHMARK ============ -->
+<dialog id="dlg-bench" aria-labelledby="bench-title">
+  <header><h2 id="bench-title">Benchmark</h2><button class="btn icon ghost" type="button" data-close aria-label="Close"></button></header>
+  <div class="dbody" id="bench-body"></div>
+</dialog>
+
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+// Inline SVG icons (stroke = currentColor). Level icons are always shown with a text label.
+
+const svg = (inner, extra = '') =>
+  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${inner}</svg>`;
+
+export const ICON = {
+  // alert levels
+  safe: svg('<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9.5"/>'),
+  watch: svg('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
+  warning: svg('<path d="M12 3.5L2.5 20h19L12 3.5z"/><path d="M12 10v4.5"/><path d="M12 17.6v.1"/>'),
+  danger: svg('<path d="M8.2 2.8h7.6L21.2 8.2v7.6l-5.4 5.4H8.2L2.8 15.8V8.2z"/><path d="M12 7.5v5.5"/><path d="M12 16.3v.1"/>'),
+  // transport
+  play: svg('<path d="M7 4.5v15l12-7.5z" fill="currentColor"/>'),
+  pause: svg('<path d="M8 5v14M16 5v14"/>'),
+  reset: svg('<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>'),
+  // chrome
+  sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>'),
+  moon: svg('<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>'),
+  chart: svg('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'),
+  info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.7v.1"/>'),
+  close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+  wifiOff: svg('<path d="M2 8.8a15 15 0 0 1 4-2.3M22 8.8a15 15 0 0 0-8.5-3.7M5 12.5a10 10 0 0 1 3.2-2M19 12.5a10 10 0 0 0-4.9-2.5M8.5 16a5 5 0 0 1 7 0M12 20h.01M3 3l18 18"/>'),
+  bell: svg('<path d="M6 9a6 6 0 1 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+  vol: svg('<path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/>'),
+  minus: svg('<path d="M5 12h14"/>'),
+  expand: svg('<path d="M14 4h6v6M10 20H4v-6M20 4l-7.5 7.5M4 20l7.5-7.5"/>'),
+  chevron: svg('<path d="M6 9l6 6 6-6"/>'),
+  arrow: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
+  check: svg('<path d="M5 12.5l4.2 4.2L19 7"/>'),
+  checks: svg('<path d="M2.5 12.5l4 4L13 9.5M10 16.5l1 1L21.5 7"/>'),
+  table: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/>'),
+  grip: `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>`,
+  live: svg('<circle cx="12" cy="12" r="1.8" fill="currentColor"/><path d="M8.6 8.6a4.8 4.8 0 0 0 0 6.8M15.4 8.6a4.8 4.8 0 0 1 0 6.8M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8"/>'),
+  flask: svg('<path d="M9 3h6M10 3v5.5L4.8 18.2A1.8 1.8 0 0 0 6.4 21h11.2a1.8 1.8 0 0 0 1.6-2.8L14 8.5V3"/><path d="M7.5 15h9"/>'),
+  // plants
+  solar: svg('<circle cx="18.5" cy="5.5" r="2.4"/><path d="M3 20.5l3.2-9h13.3l.9 9z"/><path d="M4.6 16h15.6M10.4 11.5L9 20.5M15 11.5l.6 9"/>'),
+  rig: svg('<path d="M12 3L7.8 21M12 3l4.2 18"/><path d="M9.4 13h5.2M8.6 17h6.8M10.6 8.5h2.8"/><path d="M3 21h18"/>'),
+  // brand mark (flat: ink tile, globe, one alert dot)
+  geos: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#14181f"/><circle cx="24" cy="25" r="13" fill="none" stroke="#f4f2ec" stroke-width="2.6"/><ellipse cx="24" cy="25" rx="5.6" ry="13" fill="none" stroke="#f4f2ec" stroke-width="2.2"/><path d="M11 25h26" stroke="#f4f2ec" stroke-width="2.2"/><circle cx="37" cy="12" r="5" fill="#e0701d" stroke="#14181f" stroke-width="3"/></svg>`,
+};
+
+export const LEVEL_ICON = ['safe', 'watch', 'warning', 'danger'];
+export const LEVEL_LABEL = ['SAFE', 'WATCH', 'WARNING', 'DANGER'];
+
+/** Status pill: colour is never alone, the icon and the label always travel with it. */
+export function badge(level, { big = false, label } = {}) {
+  return `<span class="pill lv${level}${big ? ' big' : ''}">${ICON[LEVEL_ICON[level]]}${label || LEVEL_LABEL[level]}</span>`;
+}

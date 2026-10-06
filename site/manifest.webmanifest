@@ -1,0 +1,13 @@
+{
+  "name": "GEOS Early Warning",
+  "short_name": "GEOS",
+  "description": "Predictive early warning for environmental stress in remote and extreme work settings. Works offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e9e7e0",
+  "theme_color": "#e9e7e0",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
