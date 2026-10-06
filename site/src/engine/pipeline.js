@@ -122,7 +122,7 @@ export class WorkerMonitor {
     // minutes outdoors, with a faster recovery indoors, against the frostbite window at the current wind chill
     const outdoor = zone === 'sun' || zone === 'shade';
     this.coldMin = wc <= -15 && outdoor ? this.coldMin + 1 : Math.max(0, this.coldMin - 2);
-    const cold = wc <= -15 ? { wc, minOut: this.coldMin, tf: frostbiteMinutes(wc) } : null;
+    const cold = wc <= -15 ? { wc, minOut: this.coldMin, tf: frostbiteMinutes(wc), indoors: !outdoor } : null;
 
     // --- heart rate QC and smoothing ---
     const q = this.hrQc.process(s.hr ?? null);
@@ -149,7 +149,7 @@ export class WorkerMonitor {
       t, tcEst: E.tc, tcSd: E.sd, ttt385, ttt385early, ttt39, ttt39early, psi: ps,
       wbgtEff, limit, plan, M, activityLabel: ACTIVITY[activity].label,
       hr: this.hrSmooth, hrRest: p.restHr, minutesWithoutHr: q.minutesSinceGood, slopePerHour: E.slopePerHour,
-      gas, pm: site.pm, pm10: site.env.pm10, cold,
+      gas, pm: site.pm, pm10: site.env.pm10, cold, insulated: site.env.tAirC < 5,
     });
 
     // --- baselines used for comparison (what typical systems would do) ---
@@ -171,7 +171,7 @@ export class WorkerMonitor {
       tc: E.tc, tcSd: E.sd, tcPrior: priorE.tc, tcHrOnly: B.tc, slopePerHour: E.slopePerHour, bias: E.bias,
       ttt385, ttt385early, ttt39, forecast,
       psi: ps, psiCat: psiCategory(ps), dose,
-      coldWc: wc, coldMin: this.coldMin, coldTf: cold ? cold.tf : null,
+      coldWc: wc, coldMin: this.coldMin, coldTf: cold && Number.isFinite(cold.tf) ? cold.tf : null,
       gas, level: a.level, candidate: a.candidate, title: a.title, hazard: a.hazard, reasons: a.reasons, actions: a.actions, change: a.change,
       base, first: { ...this.first },
       truth: s.truth ?? null,

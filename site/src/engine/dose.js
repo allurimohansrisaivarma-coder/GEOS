@@ -53,9 +53,11 @@ export class GasExposure {
  */
 export function particulateLevel(pm10, surge = false) {
   if (pm10 == null) return { level: 0, label: 'n/a', advisory: false };
-  const label = pm10 >= 800 ? 'Hazardous - respirator advised'
+  const label = pm10 >= 425 ? 'Hazardous - respirator advised'
     : pm10 >= 355 ? 'Very unhealthy - respirator advised'
-    : pm10 >= 155 ? 'Unhealthy for sensitive groups' : 'Acceptable';
+    : pm10 >= 255 ? 'Unhealthy'
+    : pm10 >= 155 ? 'Unhealthy for sensitive groups'
+    : pm10 >= 55 ? 'Moderate' : 'Good';
   let level = 0;
   if (surge && pm10 >= 355) level = 1;
   if ((surge && pm10 >= 800) || pm10 >= 1500) level = 2;

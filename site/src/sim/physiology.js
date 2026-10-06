@@ -107,7 +107,9 @@ export class Person {
     const Esw = Math.min(Math.max(0, sens * (this.tc - thr) + 150 * (this.tsk - 34)), cap);
     const evap = Math.min(Esw, Emax);
 
-    const storage = M + Hsol - Hdry - Eres - evap;
+    // cold defence: below about 36.6 C the body shivers, adding heat in proportion to how far core temperature has fallen
+    const shiver = clamp(260 * (36.6 - this.tc), 0, 300);
+    const storage = M + shiver + Hsol - Hdry - Eres - evap;
     this.tc = clamp(this.tc + (storage * 60 * dt) / this.C, 35.8, 42.5);
 
     this.sweatL += (Esw * 60 * dt) / 2430 / 1000;

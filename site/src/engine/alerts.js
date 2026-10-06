@@ -71,7 +71,20 @@ export class AlertPolicy {
   _move(t, to, cand) {
     const from = this.level;
     this.level = to;
-    const use = to === cand.level ? cand : { ...cand, title: to === 0 ? 'Back to safe range' : cand.title };
+    let use;
+    if (to === cand.level) use = cand;
+    else if (to === 0) use = { ...cand, title: 'Back to safe range' };
+    else {
+      // Stepping down but still elevated: keep describing the hazard we were in and say it is easing,
+      // instead of showing an empty "all clear" at WARNING or reasons from an unrelated, lower hazard.
+      const hz = cand.level > 0 ? cand.hazard : this.last.hazard;
+      use = {
+        hazard: hz,
+        title: `${titleFor(hz, to)} (easing)`,
+        reasons: [...(cand.level > 0 ? cand.reasons : []), 'Readings are easing; staying at this level until they stay lower'],
+        actions: cand.level > 0 ? cand.actions : this.last.actions,
+      };
+    }
     this.last = { reasons: use.reasons, actions: use.actions, title: use.title, hazard: use.hazard };
     return { t, from, to, title: use.title, hazard: use.hazard, reasons: use.reasons, actions: use.actions };
   }
@@ -91,7 +104,7 @@ export class AlertPolicy {
     const t385 = uncertain ? i.ttt385early : i.ttt385;
     const t39 = uncertain ? i.ttt39early : i.ttt39;
 
-    if (i.tcEst >= c.danger.tc) raise(3, `Core temperature estimated ${f1(i.tcEst)} °C (heat-stroke risk zone)`, 'heat');
+    if (i.tcEst >= c.danger.tc) raise(3, `Core temperature estimated ${f1(i.tcEst)} °C (well above the 38.0 °C safe limit)`, 'heat');
     else if (t39 != null && t39 <= c.danger.ttt39) raise(3, `Predicted to reach 39.0 °C in ~${Math.max(1, Math.round(t39))} min`, 'heat');
     else if (i.psi >= c.danger.psi) raise(3, `Physiological strain index ${f1(i.psi)}/10 (very high)`, 'heat');
 
@@ -103,17 +116,18 @@ export class AlertPolicy {
     if (level < 2) {
       if (i.tcEst >= c.watch.tc) raise(1, `Core temperature estimated ${f1(i.tcEst)} °C and rising`, 'heat');
       if (t385 != null && t385 <= c.watch.ttt385) raise(1, `On course to reach 38.5 °C in ~${Math.round(t385)} min`, 'heat');
-      if (i.wbgtEff >= i.limit) raise(1, `WBGT ${f1(i.wbgtEff)} °C exceeds the ${f1(i.limit)} °C limit for ${i.activityLabel.toLowerCase()} work`, 'heat');
+      if (i.insulated) { if (i.wbgtEff >= i.limit) raise(1, `${i.activityLabel} work under heavy insulating clothing: heat is building up inside it`, 'heat'); }
+      else if (i.wbgtEff >= i.limit) raise(1, `WBGT ${f1(i.wbgtEff)} °C exceeds the ${f1(i.limit)} °C limit for ${i.activityLabel.toLowerCase()} work`, 'heat');
     }
     if (hazardIs(hazard, 'heat') && level >= 1) {
-      reasons.push(`Workload ${i.activityLabel.toLowerCase()} (${i.M} W): WBGT ${f1(i.wbgtEff)} °C vs limit ${f1(i.limit)} °C`);
+      reasons.push(i.insulated ? `Workload ${i.activityLabel.toLowerCase()} (${i.M} W) in cold-weather clothing` : `Workload ${i.activityLabel.toLowerCase()} (${i.M} W): WBGT ${f1(i.wbgtEff)} °C vs limit ${f1(i.limit)} °C`);
       if (i.hr != null) reasons.push(`Heart rate ${Math.round(i.hr)} bpm (resting ${i.hrRest}); core temperature ${i.slopePerHour >= 0 ? 'rising' : 'falling'} ${f1(Math.abs(i.slopePerHour))} °C/h`);
     }
 
     // ---- sensor loss: never fail silent ----
     if (i.minutesWithoutHr >= this.cfg.sensorLostMin) {
       const lv = i.wbgtEff >= i.limit - 2 ? 1 : 0;
-      if (lv) raise(1, `Heart-rate sensor lost for ${Math.round(i.minutesWithoutHr)} min - running on the environment model (confidence reduced)`, 'sensor');
+      if (lv) raise(1, `GEOS-Strap heart-rate signal lost for ${Math.round(i.minutesWithoutHr)} min - running on the environment model (confidence reduced)`, 'sensor');
     }
 
     // ---- toxic gas / air quality (independent hazards; highest wins) ----
@@ -121,15 +135,17 @@ export class AlertPolicy {
       i.gas.reasons.forEach((r) => raise(i.gas.level, r, 'gas'));
     }
     // ---- cold: wind chill against how long this person has been outdoors (frostbite window) ----
-    if (i.cold) {
+    if (i.cold && !i.cold.indoors) { // indoors (heated cabin) the person is warming up, so no cold alert is raised
       const { wc, minOut, tf } = i.cold;
-      const f = Number.isFinite(tf) ? minOut / tf : 0;
-      const why = Number.isFinite(tf)
-        ? `Wind chill ${Math.round(wc)} °C: exposed skin freezes in ~${Math.round(tf)} min; ${minOut} min outdoors so far`
-        : `Wind chill ${Math.round(wc)} °C and ${minOut} min outdoors`;
-      if (f >= 1) raise(3, why, 'cold');
-      else if (f >= 0.6) raise(2, why, 'cold');
-      else if (minOut >= 5) raise(1, why, 'cold');
+      if (Number.isFinite(tf)) {
+        const why = `Wind chill ${Math.round(wc)} °C: exposed skin freezes in ~${Math.round(tf)} min; ${minOut} min outdoors so far`;
+        const f = minOut / tf;
+        if (f >= 1) raise(3, why, 'cold');
+        else if (f >= 0.6) raise(2, why, 'cold');
+        else if (minOut >= 5) raise(1, why, 'cold');
+      } else if (minOut >= 60) {
+        raise(1, `Wind chill ${Math.round(wc)} °C (no frostbite expected) but ${minOut} min outdoors: time for a warm-up break`, 'cold');
+      }
     }
     if (i.pm && i.pm.level > 0 && level < 2) {
       raise(i.pm.level, `PM10 ${Math.round(i.pm10)} ug/m3: ${i.pm.label}`, 'air');
@@ -173,7 +189,7 @@ function actionsFor(hazard, level, planText) {
     if (level === 2) return ['Finish the task and warm up in the heated cabin', 'Cover face and hands; check your buddy\'s skin'];
     return ['Plan a warm-up break', 'Keep skin covered and clothing dry'];
   }
-  if (hazard === 'sensor') return ['Re-seat or replace the heart-rate strap', 'Buddy check until the sensor is back'];
+  if (hazard === 'sensor') return ['Re-seat or replace the GEOS-Strap (or raise a ticket)', 'Buddy check until the strap is back'];
   if (level >= 3) return ['Emergency: stop work and cool immediately (shade, wet cloth, ice at neck/armpits/groin)', 'Call medical help; cool first, transport second', 'Never leave the worker alone'];
   if (level === 2) return ['Stop work: move to shade or a cool area', 'Rest at least 15 min; drink 250 ml water', planText, 'Buddy check for dizziness, nausea, confusion'];
   return ['Drink 250 ml every 15-20 min', planText, 'Take shade breaks early'];

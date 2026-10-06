@@ -100,7 +100,7 @@ export function updateCrew(S, fr) {
     const silent = Math.round(w.minutesWithoutHr || 0);
     const hrx = $('.hrx', card);
     hrx.hidden = silent < 3;
-    if (silent >= 3) hrx.title = `Heart-rate strap silent for ${agoText(silent)}. The estimate is running on the environment model.`;
+    if (silent >= 3) hrx.title = `GEOS-Strap silent for ${agoText(silent)}. The estimate is running on the environment model.`;
     const t = w.ttt385;
     $('.ttt', card).textContent = w.tc >= 38.5 ? 'over 38.5' : t != null && t <= 60 ? `38.5 in ${Math.max(1, Math.round(t))} min` : '';
     const from = Math.max(0, S.idx - 90);
@@ -143,7 +143,7 @@ export function renderDetail(S, fr) {
     const left = w.coldTf != null ? Math.max(0, Math.round(w.coldTf - w.coldMin)) : null;
     if (w.zone === 'cabin') { val = 'Warm'; unit = ''; note = `Heated cabin. Wind chill outside ${Math.round(w.coldWc)} °C`; }
     else if (w.coldWc > -15) { val = 'None'; unit = ''; note = 'Wind chill is above -15 °C'; }
-    else if (left == null) { val = '30+'; note = `Wind chill ${Math.round(w.coldWc)} °C; ${w.coldMin} min outdoors`; }
+    else if (left == null) { val = 'None'; unit = ''; note = `Wind chill ${Math.round(w.coldWc)} °C: no frostbite expected. ${w.coldMin} min outdoors`; }
     else { val = left === 0 ? 'Now' : String(left); if (left === 0) unit = ''; note = `Exposed skin at wind chill ${Math.round(w.coldWc)} °C; ${w.coldMin} min outdoors`; }
   }
   if (w.hazard === 'gas' && lv >= 2 && w.gas.inst != null) {
@@ -342,7 +342,7 @@ export function updateCharts(S) {
     S.charts.exp.setData({
       series: [{ id: 'wc', label: 'Wind chill', color: 'var(--s1)', points: ws.map((_, i) => [i, fs[i].site.windChill]), primary: true, endDot: true }],
       xDomain: [wx0, wx1], xTick: 30, yDomain: [-56, -4], yTicks: [-50, -40, -30, -20, -10], nowX: idx, vlines: [], bands: [],
-      hlines: [{ y: -15, label: '-15', color: 'var(--warn)' }, { y: -27, label: '-27', color: 'var(--serious)' }, { y: -40, label: '-40', color: 'var(--crit)' }],
+      hlines: [{ y: -15, label: '-15', color: 'var(--warn)' }, { y: -28, label: '-28', color: 'var(--serious)' }, { y: -40, label: '-40', color: 'var(--crit)' }],
     });
     $('#chart-legend').innerHTML = '<span style="--c:var(--s1)"><i></i>Wind chill (°C)</span><span style="--c:var(--serious)"><i></i>Frostbite in 30 min</span><span style="--c:var(--crit)"><i></i>in 10 min</span>';
   } else {
@@ -374,7 +374,7 @@ export function renderSite(S, fr) {
   const lo = cold ? -50 : 18, hi = cold ? 0 : 38, W = 284;
   const X = (v) => 6 + ((clamp(v, lo, hi) - lo) / (hi - lo)) * (W - 12);
   const marks = cold
-    ? [[-15, 'Cold'], [-27, 'Severe'], [-40, 'Extreme']]
+    ? [[-15, 'Cold'], [-28, 'Severe'], [-40, 'Extreme']]
     : [[wbgtLimit(415, false), 'Heavy'], [wbgtLimit(300, false), 'Mod.'], [wbgtLimit(300, true), 'Mod. acc.'], [wbgtLimit(180, true), 'Light acc.']];
   const fillX = cold ? W - 6 - (X(big) - 6) : X(big); // wind chill fills from the cold end
   let scale = `<svg viewBox="0 0 ${W} 72" role="img" aria-label="${cold ? 'Wind chill' : 'WBGT'} ${f1(big)} on its risk scale">
@@ -389,8 +389,8 @@ export function renderSite(S, fr) {
   const stat = (l, v, u, sub) => `<div class="stat"><span class="st-lab">${l}</span><span class="st-val">${sub ? `<em>${esc(sub)}</em>` : ''}${v}<small>${u}</small></span></div>`;
   const zl = S.scn.zoneLabels || {};
   const chips = cold
-    ? `<span class="chip">${zl.cabin || 'Cabin'} ${f1(fr.site.zones.cabin)} °C</span>`
-    : `<span class="chip">${zl.shade || 'Shade'} ${f1(th.shade.wbgt)} °C</span><span class="chip">${zl.cabin || 'Cabin'} ${f1(fr.site.zones.cabin)} °C</span>${fr.site.zones.machinery != null ? `<span class="chip">Engine room ${f1(fr.site.zones.machinery)} °C</span>` : ''}`;
+    ? `<span class="chip" title="Heated shelter, modelled at 25 °C air">${zl.cabin || 'Cabin'} 25 °C</span>`
+    : `<span class="chip" title="WBGT in this zone">${zl.shade || 'Shade'} WBGT ${f1(th.shade.wbgt)} °C</span><span class="chip" title="WBGT in this zone (air-conditioned, 25 °C air)">${zl.cabin || 'Cabin'} WBGT ${f1(fr.site.zones.cabin)} °C</span>${fr.site.zones.machinery != null ? `<span class="chip" title="WBGT in this zone">Engine room WBGT ${f1(fr.site.zones.machinery)} °C</span>` : ''}`;
   const cap = cold ? 'Wind chill, what exposed skin feels' : S.scn.underground ? 'WBGT at the coal face, what a worker feels' : 'WBGT in full sun, what a worker feels';
   const rows = cold
     ? [stat('Air temperature', f1(e.tAirC), '°C'), stat('Wind', f1(e.wind10m), 'm/s'), stat('Humidity', Math.round(e.rhPct), '%'), stat('Sun elevation', Math.round(fr.site.geom.elevationDeg), '°')]
