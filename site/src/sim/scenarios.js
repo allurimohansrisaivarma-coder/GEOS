@@ -317,13 +317,13 @@ export function mineCrew(lunchAt = 180) {
     person('thabo', 'Thabo Mokoena', 'Roof bolter (new hire)', body(78, 175, 23, 70, { clothing: 'doubleLayer', drinkLph: 0.3, kth: 24 }),
       withBreaks(ug('heavy'), [lunch])),
     person('lerato', 'Lerato Dlamini', 'Electrician (acclimatised)', body(62, 165, 34, 62, { acclimatized: true, fit: 1.1, drinkLph: 0.8, kth: 20 }),
-      withBreaks(ug('moderate'), [lunch, [80, 90, 'cabin'], [lunchAt + 90, lunchAt + 100, 'cabin']])),
+      withBreaks(ug('moderate'), [lunch, [80, 90, 'cabin'], [lunchAt + 90, lunchAt + 100, 'cabin'], [262, 282, 'cabin']])),
     person('pieter', 'Pieter van Wyk', 'Shift boss', body(88, 180, 49, 76, { acclimatized: true, fit: 0.9, clothing: 'light', drinkLph: 0.6, kth: 22 }),
       withBreaks(ug('light'), [lunch, [60, 75, 'cabin'], [150, 165, 'cabin'], [260, 275, 'cabin']]), { hrDropouts: [[120, 150]] }),
     person('sipho', 'Sipho Ndlovu', 'Continuous-miner operator (new hire)', body(82, 178, 28, 68, { clothing: 'doubleLayer', fit: 1.05, drinkLph: 0.35, kth: 23 }),
       withBreaks((i) => ({ activity: i % 60 < 40 ? 'heavy' : 'moderate', zone: 'shade' }), [lunch])),
     person('nomsa', 'Nomsa Khumalo', 'Ventilation technician (acclimatised)', body(57, 160, 30, 65, { acclimatized: true, drinkLph: 0.7, kth: 21 }),
-      withBreaks((i) => ({ activity: i % 60 < 30 ? 'moderate' : 'light', zone: 'shade' }), [lunch, [55, 60, 'cabin'], [115, 120, 'cabin'], [lunchAt + 55, lunchAt + 60, 'cabin']])),
+      withBreaks((i) => ({ activity: i % 60 < 30 ? 'moderate' : 'light', zone: 'shade' }), [lunch, [55, 60, 'cabin'], [115, 120, 'cabin'], [lunchAt + 55, lunchAt + 60, 'cabin'], [255, 275, 'cabin']])),
   ];
 }
 
@@ -393,7 +393,7 @@ function mine() {
     env: {
       tMean: 30.5, tAmp: 0.4, tPeakH: 14, dewC: 25.0, wind10: 1.5, kt: 0.05, pm0: 260, pressure: 1060, underground: true,
       dust: { t0: 190, t1: 194, t2: 235, dT: 0, dWind: 1.2, dPm: 1800, dKt: 0 },
-      vent: { t0: 235, t1: 242, t2: 285, t3: 305, dT: 3.2, dWind: 0.8, dDew: 1.4 },
+      vent: { t0: 235, t1: 242, t2: 285, t3: 305, dT: 4.5, dWind: 0.9, dDew: 1.8 },
     },
     narrative: [
       { t: 0, text: 'Shift descends into the mine' },

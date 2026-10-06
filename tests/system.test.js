@@ -24,6 +24,28 @@ test('every scenario runs end-to-end with finite outputs', () => {
   }
 });
 
+test('Arctic: cold exposure is judged by wind chill and time outdoors, so the person who stays out is warned', () => {
+  const r = run('arctic', { seed: 1 });
+  const lv = (id) => Math.max(...r.frames.map((f) => f.workers[id].level));
+  const haz = (id) => r.frames.find((f) => f.workers[id].level >= 2)?.workers[id].hazard;
+  assert.equal(haz('maxim'), 'cold', 'the pipe fitter stays outdoors for 54 of every 60 minutes');
+  assert.ok(lv('maxim') >= 3);
+  assert.ok(lv('anya') <= 1, 'the crane operator spends most of the shift in the cab');
+  const wc = r.frames[100].site.windChill;
+  assert.ok(wc < -25 && wc > -40, `wind chill ${wc}`);
+});
+
+test('Coal mine: no sun, a dust surge is detected and the ventilation failure shows up as a heat-load jump', () => {
+  const r = run('mine', { seed: 1 });
+  assert.ok(r.frames.every((f) => f.site.env.solarWm2 < 5));
+  const texts = r.frames.flatMap((f) => f.site.events.map((e) => e.text));
+  assert.ok(texts.some((t) => /Dust front/.test(t)));
+  assert.ok(texts.some((t) => /Heat load jump/.test(t)));
+  const firstWarned = (id) => r.frames.find((f) => f.workers[id].level >= 2 && f.workers[id].hazard === 'heat')?.t ?? null;
+  assert.ok(firstWarned('thabo') != null, 'the new hire on heavy work gets a heat warning');
+  assert.equal(firstWarned('pieter'), null, 'the shift boss does not');
+});
+
 test('simulation is deterministic for a given seed and differs across seeds', () => {
   const a = run('thar', { seed: 5 }), b = run('thar', { seed: 5 }), c = run('thar', { seed: 6 });
   assert.equal(JSON.stringify(a.frames[200].workers.arjun.tc), JSON.stringify(b.frames[200].workers.arjun.tc));

@@ -7,7 +7,8 @@ import { Monitor } from './engine/pipeline.js';
 import { buildScenario, buildLiveScenario, runScenarioSync } from './sim/scenarios.js';
 import { evaluateCase, summarise } from './sim/cohort.js';
 import { LIVE_LOCATIONS, loadDay } from './live/openmeteo.js';
-import { PLANTS, CREW_ROLES, plantById, hasShift, legacyScenario } from './plants.js';
+import { PLANTS, plantById, hasShift, hasLive, legacyScenario } from './plants.js';
+import { renderSensors } from './ui/sensors.js';
 import {
   frames, profileOf, renderPlantChip, renderStrip, buildCrew, updateCrew, renderDetail, buildCharts, updateCharts, renderSite,
   buildRunLog, renderBench,
@@ -49,7 +50,7 @@ async function init() {
   sim = initSimPanel({ onOpenChange: () => notif && sim.avoid(notif.isOpen() ? $('#notif').offsetWidth : 0) });
   picker = initPlantPicker({
     plants: PLANTS,
-    onPick: (id) => loadPlant(id, S.src === 'live' || !hasShift(plantById(id)) ? 'live' : 'sim'),
+    onPick: (id) => loadPlant(id, S.src === 'live' && hasLive(plantById(id)) ? 'live' : 'sim'),
   });
   notif = initNotifications({
     S, list: () => collectNotifications(S), redraw: renderAll,
@@ -78,6 +79,7 @@ async function init() {
   if (params.get('notif') === '1') notif.open();
   if (params.get('bench') === '1') openBench();
   if (params.get('how') === '1') $('#dlg-how').showModal();
+  if (params.get('sensors') === '1') $('#st1').click();
   // A cold visitor should see the story unfold: autoplay unless a specific moment / paused state was requested.
   const auto = params.get('autoplay');
   if (auto === '1' || (auto == null && params.get('paused') !== '1' && !params.get('t') && !params.get('bench') && !params.get('how') && !params.get('notif'))) {
@@ -107,7 +109,7 @@ async function loadPlant(plantId, src = 'sim') {
   const token = ++loadToken;
   setPlaying(false);
   let plant = plantById(plantId);
-  const wantLive = src === 'live' || !hasShift(plant);
+  const wantLive = hasLive(plant) && (src === 'live' || !hasShift(plant));
   let scn = null, usedSrc = 'sim';
   if (wantLive) {
     S.plant = plant; S.plantId = plant.id; S.src = 'live';
@@ -118,7 +120,7 @@ async function loadPlant(plantId, src = 'sim') {
       const day = await loadDay(loc);
       if (token !== loadToken) return;
       S.live.day = { ...day, name: plant.name };
-      scn = buildLiveScenario(S.live.day, S.live.offset, { roles: CREW_ROLES[plant.crew] });
+      scn = buildLiveScenario(S.live.day, plant.cold ? -S.live.offset : S.live.offset, { crew: plant.crew });
       usedSrc = 'live';
       const cur = day.current;
       setLiveStatus(`${day.offline ? `Offline snapshot, ${day.dateStr}` : `Live data, ${day.dateStr}`}. Replaying 08:00 to 17:00 local with a simulated crew.${cur ? ` At the site: ${f1(cur.temp)} °C, ${Math.round(cur.rh)}% RH, wind ${f1(cur.wind)} m/s.` : ''}`);
@@ -201,6 +203,7 @@ function draw() {
   updateCharts(S);
   renderSite(S, fr);
   renderNotifications(S, collectNotifications(S));
+  if ($('#dlg-sensors').open) renderSensors(S, fr);
 }
 
 // ------------------------------------------------------------------ playback
@@ -289,7 +292,9 @@ function syncControls() {
   $$('#src-seg button').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.src === S.src));
     if (b.dataset.src === 'sim') { b.disabled = !canSim; b.title = canSim ? 'A scripted shift with events' : 'This plant has no scripted shift. Live weather only.'; }
+    else { b.disabled = !hasLive(plant); b.title = hasLive(plant) ? "Today's real weather at the plant" : 'No weather feed underground'; }
   });
+  $('#live-off-l').textContent = plant.cold ? 'Cold snap' : 'Heat stress test';
   $('#live-box').hidden = S.src !== 'live';
   $$('#speed-seg button').forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.speed) === S.speed)));
   setSw('#sw-follow', S.mode === 'followed');
@@ -297,7 +302,7 @@ function syncControls() {
   setSw('#sw-comms', S.blackout);
   setSw('#sw-sound', S.sound);
   $('#live-off').value = String(S.live.offset);
-  $('#live-off-v').textContent = `${S.live.offset >= 0 ? '+' : ''}${S.live.offset} °C`;
+  $('#live-off-v').textContent = plant.cold ? `${S.live.offset ? '-' : ''}${S.live.offset} °C` : `+${S.live.offset} °C`;
   $('#live-off').style.setProperty('--p', `${(S.live.offset / 12) * 100}%`);
 }
 
@@ -334,6 +339,11 @@ function bind() {
   $('#btn-theme').onclick = () => applyTheme($('#btn-theme').dataset.theme === 'dark' ? 'light' : 'dark');
   $('#btn-how').onclick = () => $('#dlg-how').showModal();
   $('#btn-bench').onclick = openBench;
+  const st1 = $('#st1');
+  st1.setAttribute('role', 'button'); st1.tabIndex = 0; st1.title = 'Show every sensor and its signal strength'; st1.classList.add('click');
+  const openSensors = () => { renderSensors(S, frames(S)[S.idx]); $('#dlg-sensors').showModal(); };
+  st1.onclick = openSensors;
+  st1.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSensors(); } };
   $('#plant-chip').onclick = () => { sim.setOpen(true); picker.open(); };
   $$('#src-seg button').forEach((b) => { b.onclick = () => { if (!b.disabled && b.dataset.src !== S.src) loadPlant(S.plantId, b.dataset.src); }; });
   $$('#speed-seg button').forEach((b) => { b.onclick = () => { S.speed = Number(b.dataset.speed); syncControls(); }; });

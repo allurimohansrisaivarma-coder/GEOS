@@ -144,7 +144,7 @@
       </div>
 
       <div class="live-box" id="live-box" hidden>
-        <label class="lab" for="live-off">Heat stress test <b id="live-off-v">+0 °C</b></label>
+        <label class="lab" for="live-off"><span id="live-off-l">Heat stress test</span> <b id="live-off-v">+0 °C</b></label>
         <input type="range" id="live-off" min="0" max="12" step="1" value="0">
         <p class="live-status" id="live-status" role="status"></p>
       </div>
@@ -231,6 +231,12 @@
       </ul>
     </details>
   </div>
+</dialog>
+
+<!-- ============ SENSORS ============ -->
+<dialog id="dlg-sensors" aria-labelledby="sensors-title">
+  <header><h2 id="sensors-title">Sensors <span class="head-sum" id="sensors-sum"></span></h2><button class="btn icon ghost" type="button" data-close aria-label="Close"></button></header>
+  <div class="dbody" id="sensors-body"></div>
 </dialog>
 
 <!-- ============ BENCHMARK ============ -->

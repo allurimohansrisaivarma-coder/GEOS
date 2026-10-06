@@ -23,7 +23,7 @@ Shot "dashboard-warning"   "plant=jaisalmer&t=16&worker=arjun"                  
 Shot "dashboard-full"      "plant=jaisalmer&t=95&worker=arjun&truth=1"                1600 1650
 Shot "offshore-full"       "plant=platformb&t=146&worker=deepak"                      1600 1000
 Shot "notifications"       "plant=platformb&t=146&worker=deepak&notif=1"              1600 1000
-Shot "live"                "plant=shaybah&mode=live&t=300&worker=meera"               1600 1000
+Shot "live"                "plant=norilsk&mode=live&t=200&worker=irina"               1600 1000
 Shot "mobile"              "plant=jaisalmer&t=60&worker=arjun&sim=min"                500  1500
 Shot "benchmark"           "bench=1"                                                  1280 1100
 Shot "how-it-works"        "how=1&theme=light"                                        1280 1100
