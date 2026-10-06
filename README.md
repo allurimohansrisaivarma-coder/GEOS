@@ -33,7 +33,7 @@ In the app, everything about the simulation lives in the floating **Simulation**
 
 * **Jaisalmer Solar Park (Thar Desert), 10:00-16:00.** Five workers, same weather. GEOS warns the two new hires (heavy work, double-layer suits) **28 and 50 minutes before their true core temperature crosses 38.5 °C**, and never raises a heat alarm for the three who stay safe. A static WBGT alarm rings for all five. With **Follow advice**, both peak at 38.0 °C instead of ~39 °C. A dust front at 15:00 is caught by change-point detection within 3 minutes.
 * **Platform B (offshore, Mumbai High).** A sour-gas seal fails. The fixed area monitor peaks at 7.8 ppm (under the limit, "all clear") while the roustabout at the source breathes 65 ppm and is put in DANGER within 2 minutes; another worker's *10-minute dose* trips the NIOSH limit though no single reading crosses the ceiling. Meanwhile the engine-room mechanic is warned for heat in a room the outdoor sensors never see.
-* **Graceful degradation.** A heart-rate strap drops out for 35 minutes: the filter keeps predicting from the environment, widens its uncertainty, switches to the earliest plausible crossing time, and tells the supervisor.
+* **Graceful degradation.** A heart-rate strap drops out for 35 minutes (Ravi Singh, 12:30 to 13:05): the filter keeps predicting from the environment, widens its uncertainty, switches to the earliest plausible crossing time, and tells the supervisor. The heart-rate card always says how fresh its reading is ("Updated now", then "Updated 2 min ago"), turns red with "No signal" and "Last update 21 min ago" when the strap goes silent, and the crew list flags the silent strap.
 
 ## Evidence (and its limits)
 

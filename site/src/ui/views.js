@@ -73,7 +73,7 @@ export function buildCrew(S) {
     b.setAttribute('aria-pressed', 'false');
     b.innerHTML = `<span class="av">${esc(p.name[0])}</span>
       <span class="ci-l"><span class="nm">${esc(p.name)}</span><span class="rl">${esc(p.role)}</span><span class="bdg"></span></span>
-      <span class="ci-r"><span class="ci-tc"><span class="tcv">--</span><small>°C</small></span><span class="ttt"></span><span class="sp"></span></span>`;
+      <span class="ci-r"><span class="ci-tc"><span class="hrx" hidden>${ICON.wifiOff}</span><span class="tcv">--</span><small>°C</small></span><span class="ttt"></span><span class="sp"></span></span>`;
     root.append(b);
   }
 }
@@ -88,6 +88,10 @@ export function updateCrew(S, fr) {
     card.setAttribute('aria-pressed', String(id === S.sel));
     $('.bdg', card).innerHTML = badge(w.level);
     $('.tcv', card).textContent = f1(w.tc);
+    const silent = Math.round(w.minutesWithoutHr || 0);
+    const hrx = $('.hrx', card);
+    hrx.hidden = silent < 3;
+    if (silent >= 3) hrx.title = `Heart-rate strap silent for ${agoText(silent)}. The estimate is running on the environment model.`;
     const t = w.ttt385;
     $('.ttt', card).textContent = w.tc >= 38.5 ? 'over 38.5' : t != null && t <= 60 ? `38.5 in ${Math.max(1, Math.round(t))} min` : '';
     const from = Math.max(0, S.idx - 90);
@@ -134,7 +138,7 @@ export function renderDetail(S, fr) {
   const slope = `${w.slopePerHour >= 0 ? '+' : '-'}${f1(Math.abs(w.slopePerHour))} °C/h`;
   const kpis = [
     kpi('Core temp', f1(w.tc), '°C', `±${f1(1.645 * w.tcSd, 2)} · ${slope}`),
-    kpi('Heart rate', w.hrSmooth != null ? String(Math.round(w.hrSmooth)) : '--', 'bpm', w.minutesWithoutHr >= 3 ? `Sensor lost ${Math.round(w.minutesWithoutHr)} min` : `Signal ${Math.round(w.hrQuality * 100)}%`),
+    hrKpi(S, w, id),
     kpi('Strain', f1(w.psi), '/ 10', w.psiCat, w.psi * 10, lv),
     kpi('Heat vs limit', `${diff >= 0 ? '+' : ''}${f1(diff)}`, '°C', `WBGT ${f1(w.wbgtEff)} · limit ${f1(w.limit)}`),
   ];
@@ -167,6 +171,34 @@ export function renderDetail(S, fr) {
       <div class="wv">${esc(wv)}</div><div class="wa">${esc(wa.length > 62 ? wa.slice(0, 60) + '...' : wa)}</div></div>`;
 
   $('#d-race').innerHTML = raceSvg(S, id);
+}
+
+const agoText = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`);
+
+/**
+ * Heart-rate card. The headline is the latest accepted reading (not a smoothed average), a micro-trace shows the last
+ * half hour with a gap wherever the strap was silent, and the last line says how long ago the reading arrived.
+ * The strap reports once a minute, so "now" means "this minute's reading".
+ */
+function hrKpi(S, w, id) {
+  const fs = frames(S);
+  const age = Math.max(0, Math.round(w.minutesWithoutHr || 0));
+  const state = age === 0 ? 'fresh' : age < 3 ? 'late' : 'lost';
+  const lastT = Math.max(0, S.idx - age);
+  const val = age === 0 ? w.hr : fs[lastT]?.workers[id]?.hr;
+  const shown = val != null ? String(Math.round(val)) : '--';
+  const text = state === 'fresh' ? 'Updated now' : state === 'late' ? `Updated ${age} min ago` : `Last update ${agoText(age)} ago`;
+  const pts = [];
+  for (let i = Math.max(0, S.idx - 29); i <= S.idx; i++) pts.push(fs[i].workers[id].hr);
+  const known = pts.filter((v) => v != null);
+  const mid = known.length ? (Math.min(...known) + Math.max(...known)) / 2 : 100;
+  const half = Math.max(10, known.length ? (Math.max(...known) - Math.min(...known)) / 2 + 3 : 10);
+  const spark = sparkline(pts, { w: 100, h: 20, color: state === 'lost' ? 'var(--muted)' : 'var(--s2)', lo: mid - half, hi: mid + half, ref: null });
+  const tip = `Last reading ${clock(S.scn.startLocalH, lastT)}${val != null ? `: ${shown} bpm` : ''}. The strap reports once a minute.`;
+  const phase = -Math.round(performance.now() % 1600); // keeps the pulse continuous although the card is redrawn every frame
+  return `<div class="kpi hr ${state}" title="${esc(tip)}"><span class="k-lab">Heart rate${state === 'lost' ? '<span class="tag">No signal</span>' : ''}</span>
+    <span class="k-val">${shown}<small>bpm</small></span><span class="k-spark">${spark}</span>
+    <span class="k-note live"><i class="live-dot" style="animation-delay:${phase}ms"></i>${esc(text)}</span></div>`;
 }
 
 function kpi(lab, val, unit, sub, meter, lvl) {

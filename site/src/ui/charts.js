@@ -245,16 +245,22 @@ export class LineChart {
   }
 }
 
-/** Tiny sparkline as an SVG string (no interaction; the card carries the value as text). */
+/**
+ * Tiny sparkline as an SVG string (no interaction; the card carries the value as text).
+ * `null` values break the line (a gap means "no reading"); `ref` is an optional reference line.
+ */
 export function sparkline(values, { w = 78, h = 24, color = 'var(--s1)', lo = 36.8, hi = 39.2, ref = 38.5, refColor = 'var(--serious)' } = {}) {
   if (!values.length) return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true"></svg>`;
   const n = values.length;
-  const X = (i) => (n === 1 ? w : (i / (n - 1)) * (w - 6) + 1);
+  const X = (i) => (n === 1 ? w - 3 : (i / (n - 1)) * (w - 6) + 1);
   const Y = (v) => h - 2 - ((Math.min(hi, Math.max(lo, v)) - lo) / (hi - lo)) * (h - 4);
-  const d = values.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join('');
-  const last = values[n - 1];
-  return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true">
-    <line x1="0" x2="${w}" y1="${Y(ref).toFixed(1)}" y2="${Y(ref).toFixed(1)}" stroke="${refColor}" stroke-opacity="0.7" stroke-width="1"/>
-    <path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-    <circle cx="${X(n - 1).toFixed(1)}" cy="${Y(last).toFixed(1)}" r="3" fill="${color}"/></svg>`;
+  let d = '', pen = false, lastI = -1;
+  values.forEach((v, i) => {
+    if (v == null || !Number.isFinite(v)) { pen = false; return; }
+    d += `${pen ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`;
+    pen = true; lastI = i;
+  });
+  const refLine = ref != null ? `<line x1="0" x2="${w}" y1="${Y(ref).toFixed(1)}" y2="${Y(ref).toFixed(1)}" stroke="${refColor}" stroke-opacity="0.7" stroke-width="1"/>` : '';
+  const dot = lastI >= 0 ? `<circle cx="${X(lastI).toFixed(1)}" cy="${Y(values[lastI]).toFixed(1)}" r="3" fill="${color}"/>` : '';
+  return `<svg class="spark" viewBox="0 0 ${w} ${h}" aria-hidden="true">${refLine}<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>${dot}</svg>`;
 }
