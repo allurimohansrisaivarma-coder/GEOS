@@ -203,6 +203,7 @@ function draw() {
   if (!fr) return;
   const dur = S.scn.durationMin;
   S._fr = fr;
+  if (!fr.workers[S.sel]) S.sel = Object.keys(fr.workers)[0]; // never leave the detail panel pointing at someone who is not on this site
   $('#clock').textContent = clock(S.scn.startLocalH, S.idx);
   const date = new Date(S.scn.startUtcMs + S.scn.tzMin * 60000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
   $('#clock-sub').textContent = `${date} · ${hm(S.idx)} of ${hm(dur)}`;

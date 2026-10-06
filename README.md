@@ -21,16 +21,18 @@ Everything below is live in the demo and reproducible from the screenshots' URLs
 | | |
 |---|---|
 | **One shared engine, four very different sites.** Desert solar farm, offshore platform, underground coal mine and Arctic plant each have their own crew, hazards, weather and scripted shift; the same engine handles all of them. Switch from the floating panel. | ![Plant picker inside the floating simulation panel](docs/img/sim-panel.png) |
-| **Early warning that explains itself.** Time to 38.5 °C, core-temperature estimate with a 90% band and forecast, strain, and plain-language *why* and *what to do* for every alert. Arjun is in DANGER while the supervisor is not. | ![Underground coal mine: one worker in DANGER with reasons and actions](docs/img/mine.png) |
-| **Cold stress, not just heat.** At Norilsk (-28 °C wind chill) the metric is the *frostbite window*: minutes of exposed skin left, against minutes already spent outdoors. The crane operator in the heated cab never alarms. | ![Arctic plant: frostbite window and wind chill](docs/img/arctic.png) |
-| **Honest about stale data.** The heart-rate card shows the latest reading and how old it is ("Updated now", "Last update 22 min ago", red "No signal"); the crew list flags silent straps and the estimator keeps going from the environment, with wider uncertainty. | ![Heart-rate strap silent for 22 minutes, flagged on the card and in the crew list](docs/img/hr-lost.png) |
-| **Every sensor and its signal.** Click *sensors online* in the Monitor stage for each station sensor and wearable with signal bars (LoRaWAN or BLE link) and battery level. | ![Sensor list with signal bars and battery](docs/img/sensors.png) |
-| **Maintenance tickets, especially for straps.** Low battery, no signal, poor skin contact, inaccurate readings or a damaged strap: raise a ticket (prefilled from the sensor row), track it Open → In progress → Resolved; resolving a battery ticket swaps the battery and the event lands in the notifications drawer. | ![Tickets tab with two tickets in different states](docs/img/tickets.png) |
+| **Early warning that explains itself.** Time to 38.5 °C, core-temperature estimate with a 90% band and forecast, strain, and plain-language *why* and *what to do* for every alert. | ![Underground coal mine: one worker in DANGER with reasons and actions](docs/img/mine.png) |
+| **Everyone's body temperature against the ideal.** One chart under the crew list: each worker's estimated core temperature on a scale from 36 to 40 °C, with the ideal 36.5 to 37.5 °C band, the 38.0 °C limit and the danger zone, and how far each person is from 37.0 °C. Click a row to open that worker. | ![Body temperature of the five workers against the ideal range](docs/img/temps.png) |
+| **Tomorrow at a glance.** Four day-parts as weather pictograms, then what it means for work: peak WBGT and the best window for heavy work at hot sites, lowest wind chill and the frostbite time at the Arctic plant. Real Open-Meteo forecast in Live mode, a simulated outlook otherwise. | ![Tomorrow's forecast at the Arctic plant](docs/img/forecast-arctic.png) |
+| **Cold stress, not just heat.** At Norilsk (-28 °C wind chill) the metric is the *frostbite window*: minutes of exposed skin left, against minutes already spent outdoors (Environment Canada frostbite times). Nobody in the heated cabin is alarmed for cold. | ![Arctic plant: frostbite window and wind chill](docs/img/arctic.png) |
+| **Honest about stale data.** The heart-rate card shows the latest reading and how old it is ("Updated now", "Last update 22 min ago", red "No signal"); the crew list flags silent GEOS-Straps and the estimator keeps going from the environment, with wider uncertainty. | ![GEOS-Strap silent for 22 minutes, flagged on the card and in the crew list](docs/img/hr-lost.png) |
+| **Every sensor, and its details.** Click *sensors online* for each station sensor and wearable with signal bars. Open any row for a dropdown with battery percentage and hours left, make, model, year, serial number, firmware, last seen and who wears it. | ![Sensor list with signal bars and battery](docs/img/sensors.png) ![A GEOS-Strap dropdown with battery, make, model, year and serial number](docs/img/sensor-detail.png) |
+| **Maintenance tickets, especially for GEOS-Straps.** A Tickets button sits beside the bell with the number of open tickets. Raise one from a sensor row or from the form (issue types fit the device: skin contact for a strap, calibration for a gas or dust monitor), follow it Open → In progress → Resolved, and filter by status. Resolving a battery or damage ticket swaps the device. Tickets are kept per plant in the browser, duplicates are refused, and every change lands in the notifications drawer. | ![Tickets: one in progress, one open](docs/img/tickets.png) |
 | **Notifications, not pop-ups.** Every warning goes to a drawer with an unread count on the bell, with reasons and actions; the simulation panel steps aside. | ![Notifications drawer during the gas release](docs/img/notifications.png) |
 | **Real weather, offline-safe.** *Live* mode pulls current weather from Open-Meteo and can add a heat stress test; a bundled snapshot is used if the network is down. | ![Live weather mode at the Arctic plant](docs/img/live.png) |
 | **Gas that the area monitor misses.** The fixed monitor reads 7.8 ppm ("all clear") while the worker at the source breathes 65 ppm and is warned within 2 minutes. | ![Offshore platform during the H2S release](docs/img/offshore-full.png) |
 | **Measured, not claimed.** A 600-shift synthetic benchmark against static and heart-rate-only baselines (see *Evidence*), open from the top bar. | ![Benchmark dialog](docs/img/benchmark.png) |
-| **Works on a phone, offline.** Installable PWA with a service worker; the engine runs on the device so warnings do not depend on a network. | ![Mobile layout](docs/img/mobile.png) |
+| **Works on a phone, offline.** Installable PWA (own icon, service worker); the engine runs on the device so warnings do not depend on a network. | ![Mobile layout](docs/img/mobile.png) |
 
 More views: [full dashboard with ground truth](docs/img/dashboard-full.png) (the simulator's hidden true temperature, which the engine never sees), [warning followed vs ignored](docs/img/chart-followed.png), [how it works](docs/img/how-it-works.png).
 
@@ -42,12 +44,15 @@ Needs [Node.js](https://nodejs.org) 20+. No `npm install` (there are no dependen
 
 ```bash
 npm start          # dashboard at http://localhost:5173 (Windows: double-click START_DEMO.bat)
-npm test           # 32 tests: physics, signal processing, alert policy, full scenarios
+npm test           # 41 tests: physics, signal processing, alert policy, thresholds, full scenarios, offline cache
 npm run bench      # reproduce the benchmark (writes bench/results.json + site/data/benchmark.json)
 npm run snapshots  # refresh the offline weather fallback (run once while online before presenting)
+npm run shots      # regenerate docs/img (needs Edge or Chrome and 
+pm start running)
+npm run icons      # regenerate the app icons from site/icon.svg
 ```
 
-In the app, everything about the simulation lives in the floating **Simulation** panel (bottom right; drag it anywhere, or minimise it to a circle that keeps showing progress). Pick a **plant**, one of each kind of site with its own crew and hazards (Jaisalmer Solar Park in the desert, Platform B offshore, Witbank Coal Mine underground, Norilsk Arctic Plant in the polar night), choose a **Simulated** shift or **Live** weather from Open-Meteo (not underground), press **Play**, and click any worker. Click **sensors online** in the pipeline strip to see every sensor with its signal bars and battery, and to raise or work **maintenance tickets** (low battery, no signal, damaged strap). Try **Follow advice** (workers react to warnings), **Ground truth** (the simulator's true core temperature, which the engine never sees), **Comms blackout**, and the **Heat stress test** slider in Live mode. Every warning raised for a worker lands in the **Notifications** drawer (bell, top right) with an unread count, and **Benchmark** and **How it works** are in the top bar. Keys: `Space` play/pause, `R` restart, `N` notifications, `M` minimise the panel. Deep links such as `?plant=platformb&t=146&worker=deepak` jump to an exact moment.
+In the app, everything about the simulation lives in the floating **Simulation** panel (bottom right; drag it anywhere, or minimise it to a circle that keeps showing progress). Pick a **plant**, one of each kind of site with its own crew and hazards (Jaisalmer Solar Park in the desert, Platform B offshore, Witbank Coal Mine underground, Norilsk Arctic Plant in the polar night), choose a **Simulated** shift or **Live** weather from Open-Meteo (not underground), press **Play**, and click any worker. Click **sensors online** in the pipeline strip (or the **Tickets** button beside the bell) to see every sensor, open one for its battery and device details, and to raise or work **maintenance tickets**. The crew card shows everyone's **body temperature** against the ideal range and the site card shows **tomorrow's forecast**. Try **Follow advice** (workers react to warnings), **Ground truth** (the simulator's true core temperature, which the engine never sees), **Comms blackout**, and the **Heat stress test** slider in Live mode. Every warning raised for a worker lands in the **Notifications** drawer (bell, top right) with an unread count, and **Benchmark** and **How it works** are in the top bar. Keys: `Space` play/pause, `R` restart, `N` notifications, `T` tickets, `M` minimise the panel. Deep links such as `?plant=platformb&t=146&worker=deepak` jump to an exact moment.
 
 ![Notifications drawer open on Platform B during the gas release: DANGER alerts with reasons and actions, and the simulation panel moved aside](docs/img/notifications.png)
 
@@ -56,9 +61,9 @@ In the app, everything about the simulation lives in the floating **Simulation**
 * **Jaisalmer Solar Park (Thar Desert), 10:00-16:00.** Five workers, same weather. GEOS warns the two new hires (heavy work, double-layer suits) **28 and 52 minutes before their true core temperature crosses 38.5 °C**, and never raises a heat alarm for the three who stay safe. A static WBGT alarm rings for all five. With **Follow advice**, they peak at 38.0 and 38.1 °C instead of ~39 °C. A dust front at 15:00 is caught by change-point detection within 3 minutes.
 * **Platform B (offshore, Mumbai High).** A sour-gas seal fails. The fixed area monitor peaks at 7.8 ppm (under the limit, "all clear") while the roustabout at the source breathes 65 ppm and is put in DANGER within 2 minutes; another worker's *10-minute dose* trips the NIOSH limit though no single reading crosses the ceiling. Meanwhile the engine-room mechanic is warned for heat in a room the outdoor sensors never see.
 * **Witbank Coal Mine (underground).** No sun, hot humid air at the face: the two new hires are warned early. A blast raises a dust surge (everyone is told to mask up), then a main-fan trip shows up as a heat-load jump.
-* **Norilsk Arctic Plant.** Cold is judged by wind chill against how long each person has been outdoors (NWS frostbite times): the pipe fitter who stays out 54 minutes of every hour reaches DANGER, the crane operator in the cab never does. A blizzard front is detected as a cooling front.
-* **Sensor health and maintenance.** Battery and signal are tracked per sensor; straps drain faster and two typically go low in a shift. Low ones are flagged (the Monitor stage says "2 low battery") and can be ticketed. Battery and signal values are simulated, and tickets live in the browser session only (a real deployment needs a backend).
-* **Graceful degradation.** A heart-rate strap drops out for 35 minutes (Ravi Singh, 12:30 to 13:05): the filter keeps predicting from the environment, widens its uncertainty, switches to the earliest plausible crossing time, and tells the supervisor. The heart-rate card always says how fresh its reading is ("Updated now", then "Updated 2 min ago"), turns red with "No signal" and "Last update 21 min ago" when the strap goes silent, and the crew list flags the silent strap.
+* **Norilsk Arctic Plant.** Cold is judged by wind chill against how long each person has been outdoors (Environment Canada frostbite times): the pipe fitter who stays out 54 minutes of every hour reaches DANGER, the crane operator in the cab never does. A blizzard front is detected as a cooling front.
+* **Sensor health and maintenance.** Battery and signal are tracked per sensor; GEOS-Straps drain faster and one or two typically go low in a shift. Low ones are flagged (the Monitor stage says "1 low battery") and can be ticketed. Battery, signal and the make/model/serial details are sample data; tickets are stored in the browser (a real deployment needs a backend).
+* **Graceful degradation.** A GEOS-Strap drops out for 35 minutes (Ravi Singh, 12:30 to 13:05): the filter keeps predicting from the environment, widens its uncertainty, switches to the earliest plausible crossing time, and tells the supervisor. The heart-rate card always says how fresh its reading is ("Updated now", then "Updated 2 min ago"), turns red with "No signal" and "Last update 21 min ago" when the strap goes silent, and the crew list flags the silent strap.
 
 ## Evidence (and its limits)
 
@@ -90,7 +95,9 @@ HR  = b0 + b1·Tc + b2·Tc² + activity offset + resting-HR offset       correct
 * Without heart rate the filter just keeps predicting (uncertainty grows) instead of going blind.
 * **Alert policy:** WARNING when the forecast reaches 38.5 °C within 20 min or the estimate is ≥ 38.2 °C; DANGER near 39 °C. Escalate after 3 consecutive samples (DANGER 2, acute gas 1); step down one level at a time after 12 calmer samples. When the filter is unsure it uses the *earliest plausible* crossing time.
 * **Work/rest plan** is the NIOSH limit inverted for the time-weighted metabolic rate, so advice is a number ("work 30 / rest 30"), not a slogan.
-* **Gas:** 10-minute rolling dose per person against NIOSH 10 ppm, OSHA 20 ppm ceiling, 100 ppm IDLH. Dust: a steady high level is a site advisory; a sudden surge is a worker alert.
+* **Gas:** 10-minute rolling dose per person against NIOSH 10 ppm, OSHA 20 ppm ceiling, 100 ppm IDLH. Dust: labels follow the US AQI PM10 bands; a steady high level is a site advisory, a sudden surge is a worker alert.
+* **Cold:** wind chill (JAG/TI formula) against minutes spent outdoors; frostbite times from Environment Canada (30 min at -28 °C wind chill, 10 at -40, 5 at -48, 2 at -55). Indoors nobody is alarmed for cold. In the cold the body settles a little below 37 °C, so the core estimate there is approximate on the low side.
+* **Stepping down:** when risk eases, the level drops one step at a time and says so ("easing") instead of jumping to all-clear.
 
 Why not deep learning? It is safety-critical, there is no public labelled dataset for these settings, it must run on tiny offline devices, and every alert has to be explainable.
 
@@ -98,16 +105,17 @@ Why not deep learning? It is safety-critical, there is no public labelled datase
 
 ```
 site/                     the app (static files, no build step)
-  index.html styles.css flow.css sw.js manifest.webmanifest
-  src/engine/             the product: dependency-free, DOM-free, O(1) per sample (1,040 lines)
+  index.html styles.css flow.css sw.js manifest.webmanifest icon.svg + PNG icons
+  src/engine/             the product: dependency-free, DOM-free, O(1) per sample (about 1,100 lines)
   src/sim/                physiological simulator, scenarios, benchmark cohort
   src/live/openmeteo.js   real weather + offline fallback
   src/plants.js           the named plants (scripted shift and/or live weather)
-  src/ui/ src/main.js     dashboard: floating simulation panel, notifications drawer, SVG charts written from scratch
+  src/outlook.js          tomorrow's forecast (simulated or live) and what it means for work
+  src/ui/ src/main.js     dashboard: floating simulation panel, notifications drawer, sensors and tickets, SVG charts written from scratch
   data/                   benchmark.json, snapshots.json (offline weather)
 tests/                    node:test suites
 bench/run.mjs             benchmark + calibration (`--tune`)
-scripts/                  serve.mjs, fetch-snapshots.mjs, screenshots.ps1, screenshots-interactive.mjs
+scripts/                  serve.mjs, fetch-snapshots.mjs, screenshots.mjs, make-icons.mjs
 docs/img/                 screenshots used in this README and the deck
 ```
 

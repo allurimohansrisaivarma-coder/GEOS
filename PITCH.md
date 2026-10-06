@@ -60,7 +60,7 @@ Each slide has full speaker notes. Download a PPTX/PDF backup before the event.
 
 **How accurate is the core-temperature estimate?** In our synthetic benchmark the RMSE is 0.31 °C. The underlying heart-rate model (Buller et al.) is what the US Army's ECTemp algorithm uses; it reported a bias of -0.03 ± 0.32 °C over 52,000 observations from 83 volunteers. Ours adds an environment prior, a personal drift term and each worker's resting heart rate.
 
-**Is the heart rate live?** The pipeline takes one reading per worker per minute (wearables average over the minute and send once, which saves battery and airtime on a LoRa or satellite link), so "live" means this minute's reading. The card shows the latest accepted reading, a half-hour trace, and exactly how long ago it arrived; if the strap goes quiet it turns red with "Last update N min ago" instead of showing a frozen number as if it were current.
+**Is the heart rate live?** The pipeline takes one reading per worker per minute (wearables average over the minute and send once, which saves battery and airtime on a LoRa or satellite link), so "live" means this minute's reading. The card shows the latest accepted reading, a half-hour trace, and exactly how long ago it arrived; if the GEOS-Strap goes quiet it turns red with "Last update N min ago" instead of showing a frozen number as if it were current.
 
 **What sensors would it need in reality?** A wrist or chest heart-rate sensor plus accelerometer (already in most wearables), a weather station (or the site's existing one), and the personal gas monitors that offshore and confined-space workers already wear. Core temperature is *estimated*, not measured.
 

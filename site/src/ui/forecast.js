@@ -10,7 +10,7 @@ const SUN = (cx, cy, r, rays = true) => g('sun', `<circle cx="${cx}" cy="${cy}" 
 const MOON = (cx = 24, cy = 24) => g('moon', `<path d="M${cx + 8} ${cy + 6}A11 11 0 1 1 ${cx - 1} ${cy - 11}A8.5 8.5 0 0 0 ${cx + 8} ${cy + 6}z" fill="currentColor" fill-opacity=".2"/>`);
 const CLOUD = (dx = 0, dy = 0, op = 0.16) => g('cloud', `<path d="M${14 + dx} ${33 + dy}h20a7 7 0 0 0 .8-13.9 9.5 9.5 0 0 0-18.2 2.3A5.8 5.8 0 0 0 ${14 + dx} ${33 + dy}z" fill="currentColor" fill-opacity="${op}"/>`);
 const DROPS = (n) => g('drop', [[17, 38, 14, 45], [25, 38, 22, 45], [33, 38, 30, 45], [21, 41, 18, 47], [29, 41, 26, 47]].slice(0, n).map(([x1, y1, x2, y2]) => `<path d="M${x1} ${y1}L${x2} ${y2}"/>`).join(''));
-const FLAKES = g('drop', [[17, 40], [25, 43], [33, 40], [21, 46], [29, 46]].map(([x, y]) => `<path d="M${x} ${y - 2}v4M${x - 2} ${y}h4"/>`).join(''));
+const FLAKES = g('drop', [[16, 39], [24, 40], [32, 39], [20, 45], [28, 45]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.3" fill="currentColor"/>`).join(''));
 const LINES = (ys, x1 = 10, x2 = 38) => g('cloud', ys.map((y, i) => `<path d="M${x1 + (i % 2) * 4} ${y}H${x2 - (i % 2) * 4}"/>`).join(''));
 
 const WI = {

@@ -37,11 +37,13 @@ If port 5173 is busy, run it on another one (Windows PowerShell: `$env:PORT=3000
 2. Pick a **plant** in that panel: desert solar farm, offshore platform, coal mine or Arctic plant. Each has its own crew and hazards.
 3. Click a worker in the **Crew** list. See their body-temperature estimate, how soon they would reach danger, **why**, and **what to do**.
 4. Click the **bell** (top right) for every warning raised so far.
-5. Click **sensors online** (top left) to see every sensor, its signal and battery, and to **raise a maintenance ticket**, for example for a worker's strap that is low on battery.
+5. Click **sensors online** (top left) to see every sensor and its signal. Open a row to see its battery, make, model, year and serial number, and to **raise a maintenance ticket**, for example for a GEOS-Strap that is low on battery. The **clipboard button** beside the bell lists every ticket.
 6. Try the switches: **Follow advice** (workers obey the warnings), **Ground truth** (the simulator's real temperature, which GEOS never sees) and **Comms blackout**.
 7. **Benchmark** (top bar) shows the test results. **How it works** explains the steps.
 
-Handy keys: `Space` play/pause, `R` restart, `N` notifications, `M` minimise the panel.
+Under the crew list, **Body temperature** shows everyone against the ideal range. Under the site card, **Tomorrow** shows the next day's weather as pictures and what it means for work.
+
+Handy keys: `Space` play/pause, `R` restart, `N` notifications, `T` tickets, `M` minimise the panel.
 
 ## The four steps (the challenge's pipeline)
 
@@ -59,7 +61,7 @@ On 600 simulated work shifts GEOS warned ahead of **86%** of unsafe cases, about
 ## Other commands
 
 ```bash
-npm test         # 32 automated checks that the maths and alerts behave
+npm test         # 41 automated checks that the maths, alerts and thresholds behave
 npm run bench    # re-runs the 600-shift test (takes about 5 seconds)
 ```
 
