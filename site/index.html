@@ -35,6 +35,9 @@
   <div class="tb-right">
     <button class="btn ghost" id="btn-bench" type="button" title="Benchmark results"></button>
     <button class="btn icon ghost" id="btn-how" type="button" aria-label="How it works" title="How it works"></button>
+    <button class="btn icon ghost bell" id="btn-tickets" type="button" aria-label="Maintenance tickets" title="Maintenance tickets (T)">
+      <span class="bell-ico" id="tk-ico"></span><span class="bell-count tk-count" id="tk-count" hidden>0</span>
+    </button>
     <button class="btn icon ghost bell" id="btn-bell" type="button" aria-label="Notifications" aria-expanded="false" aria-controls="notif" title="Notifications (N)">
       <span class="bell-ico" id="bell-ico"></span><span class="bell-count" id="bell-count" hidden>0</span>
     </button>
@@ -54,6 +57,7 @@
     <section class="panel crew" aria-label="Crew">
       <header class="p-head"><h2 class="eyebrow">Crew</h2><span class="p-note" id="crew-sum"></span></header>
       <div class="crew-list" id="crew-list"></div>
+      <div class="crew-temps" id="crew-temps" aria-label="Body temperature of every worker against the ideal range"></div>
     </section>
 
     <section class="panel detail" id="detail" aria-label="Selected worker">
@@ -87,6 +91,10 @@
       <section class="panel site" aria-label="Site conditions">
         <header class="p-head"><h2 class="eyebrow">Site conditions</h2><span class="p-note" id="site-place"></span></header>
         <div class="body" id="site-body"></div>
+      </section>
+      <section class="panel forecast" aria-label="Tomorrow's forecast">
+        <header class="p-head"><h2 class="eyebrow">Tomorrow</h2><span class="p-note" id="fc-date"></span></header>
+        <div class="body" id="fc-body"></div>
       </section>
     </aside>
   </div>
@@ -239,7 +247,7 @@
 
 <!-- ============ SENSORS ============ -->
 <dialog id="dlg-sensors" aria-labelledby="sensors-title">
-  <header><h2 id="sensors-title">Sensors <span class="head-sum" id="sensors-sum"></span></h2><button class="btn icon ghost" type="button" data-close aria-label="Close"></button></header>
+  <header><h2 id="sensors-title">Sensors and tickets <span class="head-sum" id="sensors-sum"></span></h2><button class="btn icon ghost" type="button" data-close aria-label="Close"></button></header>
   <div class="dbody">
     <div class="seg" role="tablist" aria-label="Sensors and maintenance">
       <button type="button" role="tab" id="tab-sensors" aria-selected="true">Sensors</button>
@@ -248,15 +256,16 @@
     <div id="pane-sensors"><div id="sensors-body"></div></div>
     <div id="pane-tickets" hidden>
       <form id="tk-form" class="tkform">
-        <p class="small muted">Report a maintenance problem, for example a low strap battery. Resolving a battery ticket swaps the battery.</p>
+        <p class="small muted">Report a maintenance problem, for example a low GEOS-Strap battery. Resolving a battery or damage ticket swaps the device.</p>
         <div class="tk-row">
           <label>Sensor<select id="tk-sensor" class="inp"></select></label>
           <label>Issue<select id="tk-issue" class="inp"></select></label>
           <label>Priority<select id="tk-priority" class="inp"><option>Normal</option><option>High</option><option>Low</option></select></label>
         </div>
         <label>Note<input id="tk-note" class="inp" type="text" maxlength="140" placeholder="Optional details"></label>
-        <button type="submit" class="btn primary">Raise ticket</button>
+        <div class="tk-foot"><button type="submit" class="btn primary">Raise ticket</button><span id="tk-msg" class="tk-msg" role="status" aria-live="polite"></span></div>
       </form>
+      <div class="tk-sum" id="tk-sum"></div>
       <ul id="tk-list" class="tklist"></ul>
     </div>
   </div>

@@ -28,6 +28,11 @@ export const CLOTHING = {
   arctic: { label: 'Arctic parka', adj: 0 },
 };
 
+/** Site-level heat-load label for a WBGT reading: [label, alert level 0-3]. */
+export function heatCategory(wb) {
+  return wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
+}
+
 export function wbgtLimit(M, acclimatized) {
   const lg = Math.log10(Math.max(M, 60));
   return acclimatized ? 56.7 - 11.5 * lg : 59.9 - 14.1 * lg;
