@@ -38,8 +38,8 @@ export const ICON = {
   rig: svg('<path d="M12 3L7.8 21M12 3l4.2 18"/><path d="M9.4 13h5.2M8.6 17h6.8M10.6 8.5h2.8"/><path d="M3 21h18"/>'),
   mine: svg('<path d="M3 18h18"/><path d="M5.5 18a6.5 6.5 0 0 1 13 0"/><path d="M12 6.5v5.5"/><path d="M3 21h18"/>'),
   snow: svg('<path d="M12 2.5v19M4 7.2l16 9.6M4 16.8L20 7.2"/><path d="M9.6 4.2L12 6.6l2.4-2.4M9.6 19.8L12 17.4l2.4 2.4"/>'),
-  // brand mark (flat: ink tile, globe, one alert dot)
-  geos: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#14181f"/><circle cx="24" cy="25" r="13" fill="none" stroke="#f4f2ec" stroke-width="2.6"/><ellipse cx="24" cy="25" rx="5.6" ry="13" fill="none" stroke="#f4f2ec" stroke-width="2.2"/><path d="M11 25h26" stroke="#f4f2ec" stroke-width="2.2"/><circle cx="37" cy="12" r="5" fill="#e0701d" stroke="#14181f" stroke-width="3"/></svg>`,
+  // brand mark: a globe wrapped in a white scarf, as if being looked after (same artwork as icon.svg)
+  geos: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#14181f"/><circle cx="24" cy="21" r="14.5" fill="#3f73d9"/><path d="M14.6 12.9c3.2-1.4 6.6-.4 7.4 1.6.9 2.2-1.6 3-3.2 4.2-1.4 1-.5 3.1-2.3 3.5-2 .4-3.9-1.5-4.4-3.8-.4-2 .3-4.4 2.5-5.5zM28.2 10.9c2.8-.5 5.2 1 6 3.2.7 1.9-.9 3-2.4 3.2-1.8.3-2.2 2.3-3.9 2-1.9-.4-2.6-2.6-2.4-4.6.1-1.9 1-3.4 2.7-3.8z" fill="#9dbcf5" opacity=".78"/><path d="M9.7 22.6C15 28.6 33 28.6 38.3 22.6l.3 5C33.4 33.8 14.6 33.8 9.4 27.6z" fill="#f7f9fc"/><path d="M9.4 27.6c5.2 6.2 24 6.2 29.2 0l-.3 1.1c-5.3 5.8-23.3 5.8-28.6 0z" fill="#c9d4e6"/><path d="M26.4 33.2l5.2.9-1.3 8.8-5.4-1z" fill="#eef2f8" stroke="#c9d4e6" stroke-width=".8" stroke-linejoin="round"/><path d="M29.2 33.4l5.4-1.2 3.3 8.3-5.5 1.9z" fill="#fff" stroke="#c9d4e6" stroke-width=".8" stroke-linejoin="round"/><path d="M25.4 42.4l5 .9M32.6 42.4l4.8-1.6" stroke="#c9d4e6" stroke-width="1.4" stroke-linecap="round"/><ellipse cx="28.6" cy="33" rx="3.5" ry="2.6" fill="#fff" stroke="#c9d4e6" stroke-width=".8" transform="rotate(8 28.6 33)"/></svg>`,
 };
 
 export const LEVEL_ICON = ['safe', 'watch', 'warning', 'danger'];
