@@ -25,6 +25,7 @@ export const CLOTHING = {
   coverall: { label: 'Woven coveralls', adj: 0 },
   doubleLayer: { label: 'Double-layer / FR suit', adj: 3 },
   vaporBarrier: { label: 'Vapour-barrier suit', adj: 11 },
+  arctic: { label: 'Arctic parka', adj: 0 },
 };
 
 export function wbgtLimit(M, acclimatized) {

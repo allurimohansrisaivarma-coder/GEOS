@@ -4,8 +4,7 @@
 export const LIVE_LOCATIONS = [
   { key: 'jaisalmer', name: 'Jaisalmer Solar Park', lat: 26.92, lon: 70.9 },
   { key: 'mumbaihigh', name: 'Platform B, Mumbai High', lat: 19.46, lon: 71.33 },
-  { key: 'shaybah', name: 'Shaybah Oilfield', lat: 22.51, lon: 53.95 },
-  { key: 'deathvalley', name: 'Death Valley Solar', lat: 36.46, lon: -116.87 },
+  { key: 'norilsk', name: 'Norilsk Arctic Plant', lat: 69.35, lon: 88.2 },
 ];
 
 const F = 'https://api.open-meteo.com/v1/forecast';

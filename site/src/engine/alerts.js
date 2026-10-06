@@ -120,6 +120,17 @@ export class AlertPolicy {
     if (i.gas && i.gas.level > 0) {
       i.gas.reasons.forEach((r) => raise(i.gas.level, r, 'gas'));
     }
+    // ---- cold: wind chill against how long this person has been outdoors (frostbite window) ----
+    if (i.cold) {
+      const { wc, minOut, tf } = i.cold;
+      const f = Number.isFinite(tf) ? minOut / tf : 0;
+      const why = Number.isFinite(tf)
+        ? `Wind chill ${Math.round(wc)} °C: exposed skin freezes in ~${Math.round(tf)} min; ${minOut} min outdoors so far`
+        : `Wind chill ${Math.round(wc)} °C and ${minOut} min outdoors`;
+      if (f >= 1) raise(3, why, 'cold');
+      else if (f >= 0.6) raise(2, why, 'cold');
+      else if (minOut >= 5) raise(1, why, 'cold');
+    }
     if (i.pm && i.pm.level > 0 && level < 2) {
       raise(i.pm.level, `PM10 ${Math.round(i.pm10)} ug/m3: ${i.pm.label}`, 'air');
     }
@@ -140,7 +151,7 @@ const dedupe = (a) => [...new Set(a)];
 function titleFor(hazard, level) {
   const L = ['All clear', 'WATCH', 'WARNING', 'DANGER'][level];
   if (level === 0) return 'All clear';
-  const what = { heat: 'heat strain', gas: 'toxic gas exposure', sensor: 'sensor loss', air: 'airborne dust' }[hazard] || 'environmental stress';
+  const what = { heat: 'heat strain', gas: 'toxic gas exposure', sensor: 'sensor loss', air: 'airborne dust', cold: 'cold exposure' }[hazard] || 'environmental stress';
   if (level === 1) return `Watch: ${what}`;
   return `${L}: ${what}${level === 2 ? ' rising' : ''}`;
 }
@@ -156,6 +167,11 @@ function actionsFor(hazard, level, planText) {
     return level >= 2
       ? ['Seek enclosed shelter; stop vehicle movement if visibility drops', 'Cover nose/mouth; secure loose equipment']
       : ['Put on a dust respirator (N95/FFP2)', 'Protect eyes; keep water for rinsing'];
+  }
+  if (hazard === 'cold') {
+    if (level >= 3) return ['Get into the heated cabin NOW', 'Cover exposed skin; do not rub frostbitten areas', 'Buddy check for numbness, white patches or confusion'];
+    if (level === 2) return ['Finish the task and warm up in the heated cabin', 'Cover face and hands; check your buddy\'s skin'];
+    return ['Plan a warm-up break', 'Keep skin covered and clothing dry'];
   }
   if (hazard === 'sensor') return ['Re-seat or replace the heart-rate strap', 'Buddy check until the sensor is back'];
   if (level >= 3) return ['Emergency: stop work and cool immediately (shade, wet cloth, ice at neck/armpits/groin)', 'Call medical help; cool first, transport second', 'Never leave the worker alone'];

@@ -35,6 +35,8 @@ export const ICON = {
   // plants
   solar: svg('<circle cx="18.5" cy="5.5" r="2.4"/><path d="M3 20.5l3.2-9h13.3l.9 9z"/><path d="M4.6 16h15.6M10.4 11.5L9 20.5M15 11.5l.6 9"/>'),
   rig: svg('<path d="M12 3L7.8 21M12 3l4.2 18"/><path d="M9.4 13h5.2M8.6 17h6.8M10.6 8.5h2.8"/><path d="M3 21h18"/>'),
+  mine: svg('<path d="M3 18h18"/><path d="M5.5 18a6.5 6.5 0 0 1 13 0"/><path d="M12 6.5v5.5"/><path d="M3 21h18"/>'),
+  snow: svg('<path d="M12 2.5v19M4 7.2l16 9.6M4 16.8L20 7.2"/><path d="M9.6 4.2L12 6.6l2.4-2.4M9.6 19.8L12 17.4l2.4 2.4"/>'),
   // brand mark (flat: ink tile, globe, one alert dot)
   geos: `<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#14181f"/><circle cx="24" cy="25" r="13" fill="none" stroke="#f4f2ec" stroke-width="2.6"/><ellipse cx="24" cy="25" rx="5.6" ry="13" fill="none" stroke="#f4f2ec" stroke-width="2.2"/><path d="M11 25h26" stroke="#f4f2ec" stroke-width="2.2"/><circle cx="37" cy="12" r="5" fill="#e0701d" stroke="#14181f" stroke-width="3"/></svg>`,
 };

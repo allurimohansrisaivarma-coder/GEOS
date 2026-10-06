@@ -43,9 +43,11 @@ export function makeEnv(P, scn, seed) {
     const h = scn.startLocalH + i / 60;
     const T = P.tMean + P.tAmp * Math.cos((2 * Math.PI * (h - P.tPeakH)) / 24) + nT[i];
     const d = dust ? ramp(i, dust.t0, dust.t1) * (1 - ramp(i, dust.t1 + 15, dust.t2)) : 0;
-    const Ta = T - (dust ? dust.dT * d : 0);
-    const Td = Math.min(P.dewC + nD[i] + (dust ? 2 * d : 0), Ta - 1.0); // dew point can never exceed air temperature
-    const wind10 = Math.max(0.3, P.wind10 + nW[i] + (dust ? dust.dWind * d : 0));
+    // ventilation failure (mines): temperature and humidity climb while airflow drops, then the fans are restored
+    const vt = P.vent ? ramp(i, P.vent.t0, P.vent.t1) * (1 - ramp(i, P.vent.t2, P.vent.t3)) : 0;
+    const Ta = T - (dust ? dust.dT * d : 0) + (P.vent ? P.vent.dT * vt : 0);
+    const Td = Math.min(P.dewC + nD[i] + (dust ? 2 * d : 0) + (P.vent ? P.vent.dDew * vt : 0), Ta - 1.0); // dew point can never exceed air temperature
+    const wind10 = Math.max(0.3, P.wind10 + nW[i] + (dust ? dust.dWind * d : 0) - (P.vent ? P.vent.dWind * vt : 0));
     const g = solarGeometry(scn.startUtcMs + i * 60000, scn.site.lat, scn.site.lon);
     const kt = clamp(P.kt + nK[i] - (dust ? dust.dKt * d : 0), 0.05, 1);
     const pm10 = Math.max(5, P.pm0 * (1 + nP[i]) + (dust ? dust.dPm * d : 0));
@@ -63,7 +65,7 @@ export function makeEnv(P, scn, seed) {
     }
     return {
       tAirC: Ta, rhPct: rhFromDewPointC(Ta, Td), pressureHpa: P.pressure ?? 1005, wind10m: wind10,
-      solarWm2: clearSkyGhi(g.cza) * kt, pm10, h2sAreaPpm, gasProfile, zoneEnv,
+      solarWm2: P.underground ? 0 : clearSkyGhi(g.cza) * kt, pm10, h2sAreaPpm, gasProfile, zoneEnv,
     };
   };
 }
@@ -90,7 +92,7 @@ export class Simulator {
     if (!this.followAdvice || !prev) return base;
     const st = wk.st;
     st.high = prev.level >= 2 ? st.high + 1 : 0;
-    if (!st.onBreak && st.high >= st.delay) { st.onBreak = true; st.breakStart = i; st.zone = prev.level >= 3 ? 'cabin' : 'shade'; }
+    if (!st.onBreak && st.high >= st.delay) { st.onBreak = true; st.breakStart = i; st.zone = prev.level >= 3 || prev.hazard === 'cold' || this.scn.restZone === 'cabin' ? 'cabin' : 'shade'; }
     if (st.onBreak) {
       st.calm = i - st.breakStart >= 20 && prev.level <= 1 ? st.calm + 1 : 0;
       if (st.calm >= 5) { st.onBreak = false; st.resumeUntil = i + 30; }
@@ -230,8 +232,9 @@ function thar() {
  * Live-data scenario: REAL hourly weather (Open-Meteo) drives the environment, the crew is simulated.
  * `day` comes from live/openmeteo.js; `offsetC` raises air temperature at constant moisture (a stress test).
  */
-export function buildLiveScenario(day, offsetC = 0, { roles = null } = {}) {
+export function buildLiveScenario(day, offsetC = 0, { crew = 'solar' } = {}) {
   const startH = 8;
+  const kind = CREW_KINDS[crew] || CREW_KINDS.solar;
   const [y, mo, d] = day.dateStr.split('-').map(Number);
   const tzMin = day.tzSec / 60;
   const lerp = (arr, hf) => {
@@ -263,15 +266,85 @@ export function buildLiveScenario(day, offsetC = 0, { roles = null } = {}) {
       return {
         tAirC: Ta, rhPct: rh, pressureHpa: lerp(day.pres, hf), wind10m: Math.max(0.3, lerp(day.wind, hf)),
         solarWm2: Math.max(0, lerp(day.ghi, hf)), pm10: Math.max(5, lerp(day.pm10, hf)), h2sAreaPpm: null, gasProfile: 0,
+        zoneEnv: kind.machineryDT != null
+          ? { machinery: { tAirC: Ta + kind.machineryDT, rhPct: rhFromDewPointC(Ta + kind.machineryDT, Math.min(Td, Ta + kind.machineryDT - 1)), windMs: 0.4, pressureHpa: lerp(day.pres, hf) } }
+          : undefined,
       };
     },
     narrative: [
       { t: 0, text: 'Shift starts 08:00 local' },
       { t: 300, text: 'Planned lunch break (30 min)' },
     ],
-    workers: desertCrew(300, roles),
+    cold: !!kind.cold,
+    workers: kind.crew(300),
   };
 }
+
+// ------------------------------------------------------------------------------------------
+// Crews. Each kind of site has its own people, jobs and routines.
+// ------------------------------------------------------------------------------------------
+const body = (massKg, heightCm, age, restHr, o = {}) => ({ massKg, heightCm, age, restHr, fit: 1.0, acclimatized: false, clothing: 'coverall', metScale: 1.0, drinkLph: 0.6, kth: 22, sweatSens: 1.0, ...o });
+const person = (id, name, role, b, schedule, extra = {}) =>
+  mkWorker({ id, name, role, acclimatized: b.acclimatized, restHr: b.restHr, age: b.age, clothing: b.clothing }, b, schedule, extra);
+
+/** Offshore platform crew (humid heat, a hot engine room, sour gas). */
+export function offshoreCrew() {
+  return [
+    mkWorker({ id: 'deepak', name: 'Deepak Nair', role: 'Roustabout, deck crew', acclimatized: true, restHr: 66, age: 38, clothing: 'coverall' },
+      { massKg: 78, heightCm: 172, age: 38, restHr: 66, fit: 1.0, acclimatized: true, clothing: 'coverall', metScale: 1.0, drinkLph: 0.7, kth: 21, sweatSens: 1.0 },
+      withBreaks(() => ({ activity: 'heavy', zone: 'sun' }), [[90, 100, 'shade'], [180, 195, 'shade'], [260, 270, 'shade']]),
+      { gasCoupling: 45 }),
+    mkWorker({ id: 'farah', name: 'Farah Khan', role: 'Engine-room mechanic (new)', acclimatized: false, restHr: 70, age: 27, clothing: 'doubleLayer' },
+      { massKg: 62, heightCm: 166, age: 27, restHr: 70, fit: 1.0, acclimatized: false, clothing: 'doubleLayer', metScale: 1.0, drinkLph: 0.5, kth: 24, sweatSens: 1.0 },
+      (i) => (i >= 30 && i < 220 ? { activity: 'moderate', zone: 'machinery' } : { activity: 'light', zone: 'shade' }),
+      { gasCoupling: 4 }),
+    mkWorker({ id: 'joseph', name: "Joseph D'Souza", role: 'Crane operator', acclimatized: true, restHr: 76, age: 50, clothing: 'light' },
+      { massKg: 88, heightCm: 176, age: 50, restHr: 76, fit: 0.9, acclimatized: true, clothing: 'light', metScale: 1.0, drinkLph: 0.6, kth: 22, sweatSens: 0.95 },
+      () => ({ activity: 'light', zone: 'cabin' }),
+      { gasCoupling: 6 }),
+    mkWorker({ id: 'neha', name: 'Neha Iyer', role: 'HSE officer, deck rounds', acclimatized: false, restHr: 64, age: 34, clothing: 'coverall' },
+      { massKg: 60, heightCm: 164, age: 34, restHr: 64, fit: 1.05, acclimatized: false, clothing: 'coverall', metScale: 1.0, drinkLph: 0.7, kth: 21, sweatSens: 1.0 },
+      (i) => ({ activity: i % 40 < 25 ? 'moderate' : 'light', zone: i % 40 < 25 ? 'sun' : 'shade' }),
+      { gasCoupling: 15 }),
+  ];
+}
+
+/** Underground coal mine crew: no sun, hot and humid air, dust; the refuge chamber is the cool zone. */
+export function mineCrew(lunchAt = 180) {
+  const ug = (act) => () => ({ activity: act, zone: 'shade' });
+  const lunch = [lunchAt, lunchAt + 30, 'cabin'];
+  return [
+    person('thabo', 'Thabo Mokoena', 'Roof bolter (new hire)', body(78, 175, 23, 70, { clothing: 'doubleLayer', drinkLph: 0.3, kth: 24 }),
+      withBreaks(ug('heavy'), [lunch])),
+    person('lerato', 'Lerato Dlamini', 'Electrician (acclimatised)', body(62, 165, 34, 62, { acclimatized: true, fit: 1.1, drinkLph: 0.8, kth: 20 }),
+      withBreaks(ug('moderate'), [lunch, [80, 90, 'cabin'], [lunchAt + 90, lunchAt + 100, 'cabin']])),
+    person('pieter', 'Pieter van Wyk', 'Shift boss', body(88, 180, 49, 76, { acclimatized: true, fit: 0.9, clothing: 'light', drinkLph: 0.6, kth: 22 }),
+      withBreaks(ug('light'), [lunch, [60, 75, 'cabin'], [150, 165, 'cabin'], [260, 275, 'cabin']]), { hrDropouts: [[120, 150]] }),
+    person('sipho', 'Sipho Ndlovu', 'Continuous-miner operator (new hire)', body(82, 178, 28, 68, { clothing: 'doubleLayer', fit: 1.05, drinkLph: 0.35, kth: 23 }),
+      withBreaks((i) => ({ activity: i % 60 < 40 ? 'heavy' : 'moderate', zone: 'shade' }), [lunch])),
+    person('nomsa', 'Nomsa Khumalo', 'Ventilation technician (acclimatised)', body(57, 160, 30, 65, { acclimatized: true, drinkLph: 0.7, kth: 21 }),
+      withBreaks((i) => ({ activity: i % 60 < 30 ? 'moderate' : 'light', zone: 'shade' }), [lunch, [55, 60, 'cabin'], [115, 120, 'cabin'], [lunchAt + 55, lunchAt + 60, 'cabin']])),
+  ];
+}
+
+/** Arctic plant crew: outdoor work in arctic parkas with warm-up breaks in a heated cabin. */
+export function arcticCrew() {
+  const rota = (period, outMin, act) => (i) => (i % period < outMin ? { activity: act, zone: 'sun' } : { activity: 'rest', zone: 'cabin' });
+  return [
+    person('dmitri', 'Dmitri Volkov', 'Rigger (new hire)', body(84, 182, 26, 70, { clothing: 'arctic', kth: 24, drinkLph: 0.3 }), rota(50, 42, 'heavy')),
+    person('irina', 'Irina Sokolova', 'Welder (acclimatised)', body(60, 167, 36, 64, { clothing: 'arctic', acclimatized: true, kth: 20, drinkLph: 0.6 }), rota(40, 22, 'moderate')),
+    person('pavel', 'Pavel Orlov', 'Site foreman', body(90, 180, 48, 76, { clothing: 'arctic', acclimatized: true, fit: 0.9 }), rota(40, 18, 'light')),
+    person('anya', 'Anya Petrova', 'Crane operator', body(58, 164, 31, 66, { clothing: 'arctic', acclimatized: true }), rota(60, 10, 'light')),
+    person('maxim', 'Maxim Kozlov', 'Pipe fitter (new hire)', body(80, 177, 24, 69, { clothing: 'arctic', kth: 24, drinkLph: 0.3 }), rota(60, 54, 'heavy')),
+  ];
+}
+
+const CREW_KINDS = {
+  solar: { crew: desertCrew },
+  offshore: { crew: offshoreCrew, machineryDT: 6 },
+  mine: { crew: mineCrew },
+  arctic: { crew: arcticCrew, cold: true },
+};
 
 function offshore() {
   const tz = 330;
@@ -296,31 +369,74 @@ function offshore() {
       { t: 30, text: 'Mechanic enters the engine room for pump overhaul' },
       { t: 140, text: 'Seal failure near wellhead B: H2S release' },
     ],
-    workers: [
-      mkWorker({ id: 'deepak', name: 'Deepak Nair', role: 'Roustabout, deck crew', acclimatized: true, restHr: 66, age: 38, clothing: 'coverall' },
-        { massKg: 78, heightCm: 172, age: 38, restHr: 66, fit: 1.0, acclimatized: true, clothing: 'coverall', metScale: 1.0, drinkLph: 0.7, kth: 21, sweatSens: 1.0 },
-        withBreaks(() => ({ activity: 'heavy', zone: 'sun' }), [[90, 100, 'shade'], [180, 195, 'shade'], [260, 270, 'shade']]),
-        { gasCoupling: 45 }),
-      mkWorker({ id: 'farah', name: 'Farah Khan', role: 'Engine-room mechanic (new)', acclimatized: false, restHr: 70, age: 27, clothing: 'doubleLayer' },
-        { massKg: 62, heightCm: 166, age: 27, restHr: 70, fit: 1.0, acclimatized: false, clothing: 'doubleLayer', metScale: 1.0, drinkLph: 0.5, kth: 24, sweatSens: 1.0 },
-        (i) => (i >= 30 && i < 220 ? { activity: 'moderate', zone: 'machinery' } : { activity: 'light', zone: 'shade' }),
-        { gasCoupling: 4 }),
-      mkWorker({ id: 'joseph', name: "Joseph D'Souza", role: 'Crane operator', acclimatized: true, restHr: 76, age: 50, clothing: 'light' },
-        { massKg: 88, heightCm: 176, age: 50, restHr: 76, fit: 0.9, acclimatized: true, clothing: 'light', metScale: 1.0, drinkLph: 0.6, kth: 22, sweatSens: 0.95 },
-        () => ({ activity: 'light', zone: 'cabin' }),
-        { gasCoupling: 6 }),
-      mkWorker({ id: 'neha', name: 'Neha Iyer', role: 'HSE officer, deck rounds', acclimatized: false, restHr: 64, age: 34, clothing: 'coverall' },
-        { massKg: 60, heightCm: 164, age: 34, restHr: 64, fit: 1.05, acclimatized: false, clothing: 'coverall', metScale: 1.0, drinkLph: 0.7, kth: 21, sweatSens: 1.0 },
-        (i) => ({ activity: i % 40 < 25 ? 'moderate' : 'light', zone: i % 40 < 25 ? 'sun' : 'shade' }),
-        { gasCoupling: 15 }),
-    ],
+    workers: offshoreCrew(),
   };
   return scn;
+}
+
+function mine() {
+  const tz = 120;
+  const L = { y: 2026, mo: 8, d: 18, h: 7, mi: 0 };
+  return {
+    id: 'mine',
+    title: 'Underground coal mine',
+    subtitle: 'Mpumalanga - 31 C and humid at the face, a dust surge after blasting and a ventilation failure',
+    site: { name: 'Witbank Coal Mine', lat: -25.87, lon: 29.23 },
+    tzMin: tz,
+    startLocalH: L.h,
+    startUtcMs: localStartMs(L, tz),
+    durationMin: 360,
+    hasGas: false,
+    underground: true,
+    restZone: 'cabin',
+    zoneLabels: { shade: 'At the coal face', cabin: 'Refuge chamber', sun: 'Surface' },
+    env: {
+      tMean: 30.5, tAmp: 0.4, tPeakH: 14, dewC: 25.0, wind10: 1.5, kt: 0.05, pm0: 260, pressure: 1060, underground: true,
+      dust: { t0: 190, t1: 194, t2: 235, dT: 0, dWind: 1.2, dPm: 1800, dKt: 0 },
+      vent: { t0: 235, t1: 242, t2: 285, t3: 305, dT: 3.2, dWind: 0.8, dDew: 1.4 },
+    },
+    narrative: [
+      { t: 0, text: 'Shift descends into the mine' },
+      { t: 180, text: 'Planned meal break in the refuge chamber' },
+      { t: 190, text: 'Blast at the face: dust surge' },
+      { t: 235, text: 'Main fan trips: ventilation failure' },
+    ],
+    workers: mineCrew(180),
+  };
+}
+
+function arctic() {
+  const tz = 420;
+  const L = { y: 2026, mo: 1, d: 21, h: 8, mi: 0 };
+  return {
+    id: 'arctic',
+    title: 'Arctic plant',
+    subtitle: 'Norilsk - minus 20 C in the polar night, then a blizzard front',
+    site: { name: 'Norilsk Arctic Plant', lat: 69.35, lon: 88.2 },
+    tzMin: tz,
+    startLocalH: L.h,
+    startUtcMs: localStartMs(L, tz),
+    durationMin: 360,
+    hasGas: false,
+    cold: true,
+    zoneLabels: { sun: 'Outdoors', shade: 'Outdoors', cabin: 'Heated cabin' },
+    env: {
+      tMean: -20, tAmp: 2.5, tPeakH: 14, dewC: -25, wind10: 4.2, kt: 0.1, pm0: 12, pressure: 1012,
+      dust: { t0: 200, t1: 210, t2: 270, dT: 10, dWind: 8.5, dPm: 0, dKt: 0 },
+    },
+    narrative: [
+      { t: 0, text: 'Shift starts in the polar night' },
+      { t: 200, text: 'Blizzard front approaching from the north' },
+    ],
+    workers: arcticCrew(),
+  };
 }
 
 export const SCENARIO_LIST = [
   { id: 'thar', build: thar },
   { id: 'offshore', build: offshore },
+  { id: 'mine', build: mine },
+  { id: 'arctic', build: arctic },
 ];
 
 export function buildScenario(id) {
@@ -343,7 +459,7 @@ export function runScenarioSync(scn, Monitor, { seed = 1, followAdvice = false, 
   for (let i = 0; i < scn.durationMin; i++) {
     const fr = mon.step(sim.sample(i, prev));
     prev = {};
-    for (const [id, w] of Object.entries(fr.workers)) prev[id] = { level: w.level, gasLevel: w.gas.level };
+    for (const [id, w] of Object.entries(fr.workers)) prev[id] = { level: w.level, gasLevel: w.gas.level, hazard: w.hazard };
     frames.push(fr);
   }
   return { scn, seed, followAdvice, frames };

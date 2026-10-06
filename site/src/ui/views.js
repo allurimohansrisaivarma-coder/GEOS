@@ -4,8 +4,11 @@ import { $, esc, f1, clock } from './dom.js';
 import { ICON, LEVEL_ICON, LEVEL_LABEL, badge } from './icons.js';
 import { LineChart, sparkline } from './charts.js';
 import { CLOTHING, wbgtLimit } from '../engine/limits.js';
+import { coldCategory } from '../engine/cold.js';
+import { sensorList } from './sensors.js';
 
 const ZONE = { sun: 'In full sun', shade: 'In shade', cabin: 'Cool cabin', machinery: 'Engine room' };
+const zoneLabel = (S, z) => S.scn.zoneLabels?.[z] || ZONE[z] || z;
 const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const LV_COLOR = ['var(--good)', 'var(--warn)', 'var(--serious)', 'var(--crit)'];
@@ -36,13 +39,19 @@ export function renderStrip(S, fr) {
   const ws = Object.values(fr.workers);
   const avgQ = mean(ws.map((w) => w.hrQuality));
   const faults = ws.filter((w) => w.hrFlags.some((f) => f !== 'spike') || w.hrQuality < 0.8).length;
-  const nEnv = S.scn.hasGas ? 7 : 6;
-  setStage('st1', avgQ > 0.9 ? 0 : avgQ > 0.6 ? 1 : 2, `${nEnv + ws.length} sensors online`,
-    `Signal ${Math.round(avgQ * 100)}%${faults ? ` · ${faults} fault${faults > 1 ? 's' : ''} handled` : ''}`, avgQ * 100);
+  const sens = sensorList(S, fr);
+  const online = sens.filter((s) => s.bars > 0).length;
+  setStage('st1', online < sens.length ? 1 : avgQ > 0.9 ? 0 : avgQ > 0.6 ? 1 : 2, online === sens.length ? `${sens.length} sensors online` : `${online} of ${sens.length} online`,
+    `Signal ${Math.round(avgQ * 100)}%${faults ? ` · ${faults} fault${faults > 1 ? 's' : ''} handled` : ''}`, (online / sens.length) * 100);
 
   const wb = fr.site.thermal.sun.wbgt;
-  const cat = wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
-  setStage('st2', cat[1], `WBGT ${f1(wb)} °C`, `${cat[0]} heat load${fr.site.pm.level ? ' + dust' : ''}`, clamp((wb - 20) / 16, 0, 1) * 100);
+  if (S.scn.cold) {
+    const wc = fr.site.windChill, cc = coldCategory(wc);
+    setStage('st2', cc[1], `Wind chill ${Math.round(wc)} °C`, `${cc[0]}${fr.site.pm.level ? ' + dust' : ''}`, clamp(-wc / 55, 0, 1) * 100);
+  } else {
+    const cat = wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
+    setStage('st2', cat[1], `WBGT ${f1(wb)} °C`, `${cat[0]} heat load${fr.site.pm.level ? ' + dust' : ''}`, clamp((wb - 20) / 16, 0, 1) * 100);
+  }
 
   const top = ws.reduce((a, b) => (b.psi > a.psi ? b : a), ws[0]);
   const maxLv = Math.max(...ws.map((w) => w.level));
@@ -115,7 +124,7 @@ export function renderDetail(S, fr) {
     p.acclimatized ? 'Acclimatised' : 'Not acclimatised',
     cl.label,
     `${w.activityLabel} work`,
-    ZONE[w.zone] || w.zone,
+    zoneLabel(S, w.zone),
   ];
   const detail = `Age ${p.age} · resting heart rate ${p.restHr} bpm · ${w.M} W metabolic rate${cl.adj ? ` · clothing adds ${cl.adj} °C to WBGT` : ''}`;
   $('#d-head').className = `d-head lv${lv}`;
@@ -129,6 +138,14 @@ export function renderDetail(S, fr) {
   if (w.tc >= 38.5) { val = 'Now'; unit = ''; note = 'Estimated core temperature is at or above 38.5 °C'; }
   else if (t != null && t <= 60) { val = String(Math.max(1, Math.round(t))); note = 'Forecast if work and conditions stay the same'; }
   else { val = '60+'; note = 'No crossing forecast in the next hour'; }
+  if (S.scn.cold) {
+    heroLabel = 'Frostbite window'; unit = 'min';
+    const left = w.coldTf != null ? Math.max(0, Math.round(w.coldTf - w.coldMin)) : null;
+    if (w.zone === 'cabin') { val = 'Warm'; unit = ''; note = `Heated cabin. Wind chill outside ${Math.round(w.coldWc)} °C`; }
+    else if (w.coldWc > -15) { val = 'None'; unit = ''; note = 'Wind chill is above -15 °C'; }
+    else if (left == null) { val = '30+'; note = `Wind chill ${Math.round(w.coldWc)} °C; ${w.coldMin} min outdoors`; }
+    else { val = left === 0 ? 'Now' : String(left); if (left === 0) unit = ''; note = `Exposed skin at wind chill ${Math.round(w.coldWc)} °C; ${w.coldMin} min outdoors`; }
+  }
   if (w.hazard === 'gas' && lv >= 2 && w.gas.inst != null) {
     heroLabel = 'Breathing-zone H<sub>2</sub>S';
     val = f1(w.gas.inst, w.gas.inst >= 10 ? 0 : 1); unit = 'ppm';
@@ -140,7 +157,9 @@ export function renderDetail(S, fr) {
     kpi('Core temp', f1(w.tc), '°C', `±${f1(1.645 * w.tcSd, 2)} · ${slope}`),
     hrKpi(S, w, id),
     kpi('Strain', f1(w.psi), '/ 10', w.psiCat, w.psi * 10, lv),
-    kpi('Heat vs limit', `${diff >= 0 ? '+' : ''}${f1(diff)}`, '°C', `WBGT ${f1(w.wbgtEff)} · limit ${f1(w.limit)}`),
+    S.scn.cold
+      ? kpi('Wind chill', String(Math.round(w.coldWc)), '°C', w.coldTf != null ? `Frostbite in ~${Math.round(w.coldTf)} min` : 'No frostbite risk')
+      : kpi('Heat vs limit', `${diff >= 0 ? '+' : ''}${f1(diff)}`, '°C', `WBGT ${f1(w.wbgtEff)} · limit ${f1(w.limit)}`),
   ];
   if (S.scn.hasGas) kpis.push(kpi('H<sub>2</sub>S now', f1(w.gas.inst ?? 0), 'ppm', `Avg ${f1(w.gas.mean10)} · peak ${f1(w.gas.peak)}`));
   const hero = $('#d-hero');
@@ -154,7 +173,8 @@ export function renderDetail(S, fr) {
   $('#d-why').className = `d-box lv${lv}`;
   $('#d-why').innerHTML = `<h3 class="eyebrow">Why</h3><ul class="bul">${why}</ul>`;
   let acts = w.actions.slice(0, 3);
-  if (lv === 0) acts = [diff > -2 ? `Hydrate regularly. If conditions worsen, work ${w.plan.workMin} / rest ${w.plan.restMin} min per hour.` : 'Nothing needed. Keep hydrating.'];
+  if (lv === 0 && S.scn.cold) acts = ['Keep skin covered, stay dry and take warm-up breaks on schedule.'];
+  else if (lv === 0) acts = [diff > -2 ? `Hydrate regularly. If conditions worsen, work ${w.plan.workMin} / rest ${w.plan.restMin} min per hour.` : 'Nothing needed. Keep hydrating.'];
   $('#d-act').className = `d-box lv${lv}`;
   $('#d-act').innerHTML = `<h3 class="eyebrow">What to do</h3><ul class="bul">${acts.map((a) => `<li${lv === 0 ? ' class="none"' : ''}>${esc(a)}</li>`).join('')}</ul>`;
 
@@ -162,15 +182,19 @@ export function renderDetail(S, fr) {
   const clk = clock(S.scn.startLocalH, S.idx);
   let wv, wa;
   const over = w.tc >= 38.5;
-  if (lv === 3) { wv = w.hazard === 'gas' ? 'EVACUATE' : 'COOL NOW'; wa = w.actions[0] || ''; }
-  else if (lv === 2) { wv = w.hazard === 'gas' ? 'MOVE' : over ? 'NOW' : t != null && t <= 60 ? `T-${Math.max(1, Math.round(t))}` : 'REST'; wa = w.actions[0] || ''; }
+  if (lv === 3) { wv = w.hazard === 'gas' ? 'EVACUATE' : w.hazard === 'cold' ? 'GET INSIDE' : w.hazard === 'air' ? 'MASK UP' : 'COOL NOW'; wa = w.actions[0] || ''; }
+  else if (lv === 2) { wv = w.hazard === 'gas' ? 'MOVE' : w.hazard === 'cold' ? 'WARM UP' : w.hazard === 'air' ? 'MASK UP' : over ? 'NOW' : t != null && t <= 60 ? `T-${Math.max(1, Math.round(t))}` : 'REST'; wa = w.actions[0] || ''; }
   else if (lv === 1) { wv = over ? 'NOW' : t != null && t <= 60 ? `T-${Math.max(1, Math.round(t))}` : 'WATCH'; wa = 'Hydrate; plan a shade break'; }
   else { wv = 'OK'; wa = 'All clear'; }
   $('#d-watch').innerHTML = `<div class="watch lv${lv}${lv >= 2 ? ' pulse' : ''}" role="img" aria-label="Wearable alert preview: ${LEVEL_LABEL[lv]}">
       <div class="wt">${clk}</div><div class="wl">${ICON[LEVEL_ICON[lv]]}${LEVEL_LABEL[lv]}</div>
       <div class="wv">${esc(wv)}</div><div class="wa">${esc(wa.length > 62 ? wa.slice(0, 60) + '...' : wa)}</div></div>`;
 
-  $('#d-race').innerHTML = raceSvg(S, id);
+  // the lead-time comparison is scored against the true core temperature, so it only applies to heat strain
+  const lower = $('#d-lower');
+  lower.classList.toggle('solo', !!S.scn.cold);
+  $('#d-race').parentElement.hidden = !!S.scn.cold;
+  if (!S.scn.cold) $('#d-race').innerHTML = raceSvg(S, id);
 }
 
 const agoText = (m) => (m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`);
@@ -314,6 +338,13 @@ export function updateCharts(S) {
       hlines: [{ y: 0.85 * (220 - p.age), label: '85%', color: 'var(--axis)' }],
     });
     $('#chart-legend').innerHTML = '<span style="--c:var(--s2)"><i></i>Filtered</span><span style="--c:var(--muted)"><i class="dotk"></i>Raw</span><span style="--c:var(--muted)"><i class="wash"></i>Sensor lost</span>';
+  } else if (S.scn.cold) {
+    S.charts.exp.setData({
+      series: [{ id: 'wc', label: 'Wind chill', color: 'var(--s1)', points: ws.map((_, i) => [i, fs[i].site.windChill]), primary: true, endDot: true }],
+      xDomain: [wx0, wx1], xTick: 30, yDomain: [-56, -4], yTicks: [-50, -40, -30, -20, -10], nowX: idx, vlines: [], bands: [],
+      hlines: [{ y: -15, label: '-15', color: 'var(--warn)' }, { y: -27, label: '-27', color: 'var(--serious)' }, { y: -40, label: '-40', color: 'var(--crit)' }],
+    });
+    $('#chart-legend').innerHTML = '<span style="--c:var(--s1)"><i></i>Wind chill (°C)</span><span style="--c:var(--serious)"><i></i>Frostbite in 30 min</span><span style="--c:var(--crit)"><i></i>in 10 min</span>';
   } else {
     const wb = ws.map((w, i) => [i, w.wbgtEff]);
     const lim = ws.map((w, i) => [i, w.limit]);
@@ -334,36 +365,49 @@ export function updateCharts(S) {
 // ------------------------------------------------------------------ site card
 export function renderSite(S, fr) {
   const e = fr.site.env, th = fr.site.thermal;
+  const cold = !!S.scn.cold;
   const wb = th.sun.wbgt;
-  const cat = wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
-  const lo = 18, hi = 38, W = 284;
+  const wc = fr.site.windChill;
+  const heatCat = wb < 25 ? ['Low', 0] : wb < 28 ? ['Moderate', 0] : wb < 31 ? ['High', 1] : wb < 33 ? ['Very high', 2] : ['Extreme', 3];
+  const cat = cold ? coldCategory(wc) : heatCat;
+  const big = cold ? wc : wb;
+  const lo = cold ? -50 : 18, hi = cold ? 0 : 38, W = 284;
   const X = (v) => 6 + ((clamp(v, lo, hi) - lo) / (hi - lo)) * (W - 12);
-  const marks = [[wbgtLimit(415, false), 'Heavy'], [wbgtLimit(300, false), 'Mod.'], [wbgtLimit(300, true), 'Mod. acc.'], [wbgtLimit(180, true), 'Light acc.']];
-  let scale = `<svg viewBox="0 0 ${W} 72" role="img" aria-label="WBGT ${f1(wb)} against NIOSH limits for different work">
+  const marks = cold
+    ? [[-15, 'Cold'], [-27, 'Severe'], [-40, 'Extreme']]
+    : [[wbgtLimit(415, false), 'Heavy'], [wbgtLimit(300, false), 'Mod.'], [wbgtLimit(300, true), 'Mod. acc.'], [wbgtLimit(180, true), 'Light acc.']];
+  const fillX = cold ? W - 6 - (X(big) - 6) : X(big); // wind chill fills from the cold end
+  let scale = `<svg viewBox="0 0 ${W} 72" role="img" aria-label="${cold ? 'Wind chill' : 'WBGT'} ${f1(big)} on its risk scale">
     <rect x="6" y="20" width="${W - 12}" height="8" rx="4" fill="var(--surface-3)"/>
-    <rect x="6" y="20" width="${X(wb) - 6}" height="8" rx="4" fill="${LV_COLOR[cat[1]]}"/>
-    <circle cx="${X(wb)}" cy="24" r="8" fill="var(--surface)"/><circle cx="${X(wb)}" cy="24" r="5.5" fill="${LV_COLOR[cat[1]]}"/>`;
+    ${cold ? `<rect x="${X(big)}" y="20" width="${W - 6 - X(big)}" height="8" rx="4" fill="${LV_COLOR[cat[1]]}"/>` : `<rect x="6" y="20" width="${fillX - 6}" height="8" rx="4" fill="${LV_COLOR[cat[1]]}"/>`}
+    <circle cx="${X(big)}" cy="24" r="8" fill="var(--surface)"/><circle cx="${X(big)}" cy="24" r="5.5" fill="${LV_COLOR[cat[1]]}"/>`;
   marks.forEach(([v, lab], i) => {
     const row = i % 2;
     scale += `<line x1="${X(v)}" x2="${X(v)}" y1="32" y2="${42 + row * 12}" stroke="var(--axis)"/><text class="ax" x="${X(v)}" y="${53 + row * 12}" text-anchor="middle">${lab} ${f1(v, 0)}</text>`;
   });
   scale += '</svg>';
   const stat = (l, v, u, sub) => `<div class="stat"><span class="st-lab">${l}</span><span class="st-val">${sub ? `<em>${esc(sub)}</em>` : ''}${v}<small>${u}</small></span></div>`;
+  const zl = S.scn.zoneLabels || {};
+  const chips = cold
+    ? `<span class="chip">${zl.cabin || 'Cabin'} ${f1(fr.site.zones.cabin)} °C</span>`
+    : `<span class="chip">${zl.shade || 'Shade'} ${f1(th.shade.wbgt)} °C</span><span class="chip">${zl.cabin || 'Cabin'} ${f1(fr.site.zones.cabin)} °C</span>${fr.site.zones.machinery != null ? `<span class="chip">Engine room ${f1(fr.site.zones.machinery)} °C</span>` : ''}`;
+  const cap = cold ? 'Wind chill, what exposed skin feels' : S.scn.underground ? 'WBGT at the coal face, what a worker feels' : 'WBGT in full sun, what a worker feels';
+  const rows = cold
+    ? [stat('Air temperature', f1(e.tAirC), '°C'), stat('Wind', f1(e.wind10m), 'm/s'), stat('Humidity', Math.round(e.rhPct), '%'), stat('Sun elevation', Math.round(fr.site.geom.elevationDeg), '°')]
+    : S.scn.underground
+      ? [stat('Air temperature', f1(e.tAirC), '°C'), stat('Humidity', Math.round(e.rhPct), '%'), stat('Airflow', f1(e.wind10m), 'm/s'), stat('Dust PM10', Math.round(e.pm10), 'µg/m³', fr.site.pm.advisory ? fr.site.pm.label : ''), stat('Pressure', Math.round(e.pressureHpa), 'hPa')]
+      : [stat('Air temperature', f1(e.tAirC), '°C'), stat('Humidity', Math.round(e.rhPct), '%'), stat('Wind', f1(e.wind10m), 'm/s'), stat('Sunshine', Math.round(e.solarWm2), 'W/m²'),
+        stat('Dust PM10', Math.round(e.pm10), 'µg/m³', fr.site.pm.advisory ? fr.site.pm.label : ''), S.scn.hasGas ? stat('Area H<sub>2</sub>S', f1(e.h2sAreaPpm ?? 0), 'ppm') : stat('Sun elevation', Math.round(fr.site.geom.elevationDeg), '°')];
   $('#site-body').innerHTML = `
     <div class="site-main">
-      <div><div class="wb-row"><span class="wb-num">${f1(wb)}<small>°C</small></span>${badge(cat[1], { label: cat[0].toUpperCase() })}</div>
-      <div class="wb-cap">WBGT in full sun, what a worker feels</div></div>
+      <div><div class="wb-row"><span class="wb-num">${cold ? Math.round(big) : f1(big)}<small>°C</small></span>${badge(cat[1], { label: cat[0].toUpperCase() })}</div>
+      <div class="wb-cap">${cap}</div></div>
       <div class="scale">${scale}</div>
-      <div class="chips"><span class="chip">Shade ${f1(th.shade.wbgt)} °C</span><span class="chip">Cabin ${f1(fr.site.zones.cabin)} °C</span>${fr.site.zones.machinery != null ? `<span class="chip">Engine room ${f1(fr.site.zones.machinery)} °C</span>` : ''}</div>
+      <div class="chips">${chips}</div>
     </div>
-    <div class="stats">
-      ${stat('Air temperature', f1(e.tAirC), '°C')}${stat('Humidity', Math.round(e.rhPct), '%')}
-      ${stat('Wind', f1(e.wind10m), 'm/s')}${stat('Sunshine', Math.round(e.solarWm2), 'W/m²')}
-      ${stat('Dust PM10', Math.round(e.pm10), 'µg/m³', fr.site.pm.advisory ? fr.site.pm.label : '')}${S.scn.hasGas ? stat('Area H<sub>2</sub>S', f1(e.h2sAreaPpm ?? 0), 'ppm') : stat('Sun elevation', Math.round(fr.site.geom.elevationDeg), '°')}
-    </div>`;
+    <div class="stats">${rows.join('')}</div>`;
   $('#site-place').textContent = S.plant.place;
 }
-
 // ------------------------------------------------------------------ run log (feeds the notifications and the scrubber ticks)
 export function buildRunLog(run) {
   const log = [];

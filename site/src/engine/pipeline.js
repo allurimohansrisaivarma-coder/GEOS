@@ -16,6 +16,7 @@ import { psi, psiCategory, HeatDose } from './strain.js';
 import { GasExposure, particulateLevel } from './dose.js';
 import { AlertPolicy } from './alerts.js';
 import { median } from './psychro.js';
+import { windChillC, frostbiteMinutes } from './cold.js';
 
 const WIND_10M_TO_2M = Math.pow(2 / 10, 0.15); // neutral rural power-law profile (Liljegren 2008)
 
@@ -70,7 +71,8 @@ export class SiteMonitor {
       if (r.ended && a.h2s) { a.h2s = false; if (!r.rebased) events.push({ t, kind: 'h2s', severity: 0, text: 'Area H2S back to baseline' }); }
     }
     const pm = particulateLevel(env.pm10, a.pm10); // a.pm10 = a dust-front surge is currently in progress
-    return { t, utcMs, env, flags, geom, wind2m, thermal, zones, pm, events };
+    const windChill = windChillC(env.tAirC, env.wind10m ?? 0);
+    return { t, utcMs, env, flags, geom, wind2m, thermal, zones, pm, events, windChill };
   }
 }
 
@@ -92,6 +94,7 @@ export class WorkerMonitor {
     this.gas = new GasExposure();
     this.policy = new AlertPolicy(opts.policy);
     this.mHist = [];
+    this.coldMin = 0;
     this.hrSmooth = null;
     this.hrRun = 0;
     this.first = { geos: null, staticWbgt: null, hr: null, buller: null };
@@ -104,7 +107,7 @@ export class WorkerMonitor {
     const zoneWbgt = zone === 'sun' ? site.thermal.sun.wbgt
       : zone === 'shade' ? site.thermal.shade.wbgt
       : site.zones[zone] ?? site.thermal.shade.wbgt;
-    const wbgtEff = zoneWbgt + this.clothAdj;
+    let wbgtEff = zoneWbgt + this.clothAdj;
 
     // --- workload from the accelerometer-derived activity class, median-smoothed over 5 min ---
     const Mraw = ACTIVITY[s.activity]?.M ?? (this.mHist.at(-1) ?? ACTIVITY.rest.M);
@@ -112,6 +115,14 @@ export class WorkerMonitor {
     if (this.mHist.length > 5) this.mHist.shift();
     const activity = nearestActivity(median(this.mHist));
     const M = ACTIVITY[activity].M;
+
+    // --- cold: under insulating clothing the heat load is not the outdoor WBGT, so keep a microclimate floor ---
+    const wc = site.windChill ?? site.env.tAirC;
+    if (site.env.tAirC < 5) wbgtEff = Math.max(wbgtEff, 14 + 0.03 * (M - 115));
+    // minutes outdoors, with a faster recovery indoors, against the frostbite window at the current wind chill
+    const outdoor = zone === 'sun' || zone === 'shade';
+    this.coldMin = wc <= -15 && outdoor ? this.coldMin + 1 : Math.max(0, this.coldMin - 2);
+    const cold = wc <= -15 ? { wc, minOut: this.coldMin, tf: frostbiteMinutes(wc) } : null;
 
     // --- heart rate QC and smoothing ---
     const q = this.hrQc.process(s.hr ?? null);
@@ -138,7 +149,7 @@ export class WorkerMonitor {
       t, tcEst: E.tc, tcSd: E.sd, ttt385, ttt385early, ttt39, ttt39early, psi: ps,
       wbgtEff, limit, plan, M, activityLabel: ACTIVITY[activity].label,
       hr: this.hrSmooth, hrRest: p.restHr, minutesWithoutHr: q.minutesSinceGood, slopePerHour: E.slopePerHour,
-      gas, pm: site.pm, pm10: site.env.pm10,
+      gas, pm: site.pm, pm10: site.env.pm10, cold,
     });
 
     // --- baselines used for comparison (what typical systems would do) ---
@@ -160,6 +171,7 @@ export class WorkerMonitor {
       tc: E.tc, tcSd: E.sd, tcPrior: priorE.tc, tcHrOnly: B.tc, slopePerHour: E.slopePerHour, bias: E.bias,
       ttt385, ttt385early, ttt39, forecast,
       psi: ps, psiCat: psiCategory(ps), dose,
+      coldWc: wc, coldMin: this.coldMin, coldTf: cold ? cold.tf : null,
       gas, level: a.level, candidate: a.candidate, title: a.title, hazard: a.hazard, reasons: a.reasons, actions: a.actions, change: a.change,
       base, first: { ...this.first },
       truth: s.truth ?? null,

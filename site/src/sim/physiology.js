@@ -18,6 +18,7 @@ export const CLOTHING_PHYS = {
   coverall: { clo: 0.7, im: 0.38, alpha: 0.45 },
   doubleLayer: { clo: 0.95, im: 0.34, alpha: 0.45 },
   vaporBarrier: { clo: 1.4, im: 0.08, alpha: 0.45 },
+  arctic: { clo: 3.4, im: 0.25, alpha: 0.5 },
 };
 
 export class Person {
